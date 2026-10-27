@@ -1,10 +1,6 @@
 import { esc } from '../ui.js';
 
 const PAGES = {
-  'my-tasks': {
-    title: 'My tasks',
-    text: 'Everything assigned to you, across campaigns, grouped by when it is due. Coming in the next update.',
-  },
   'my-time': {
     title: 'My time',
     text: 'Your weekly timesheet and timer. Coming soon.',

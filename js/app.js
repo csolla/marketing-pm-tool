@@ -1,7 +1,9 @@
 import { supabase } from './supabase.js';
 import { state, loadMe, loadPeople, isDirector } from './state.js';
 import { esc, avatar, ROLES, errorMessage } from './ui.js';
+import { startRealtime, stopRealtime } from './realtime.js';
 import { renderLogin } from './pages/login.js';
+import { renderMyTasks } from './pages/my-tasks.js';
 import { renderCampaigns } from './pages/campaigns.js';
 import { renderCampaign } from './pages/campaign.js';
 import { renderPeople } from './pages/people.js';
@@ -13,7 +15,7 @@ const WORK = ['admin', 'member'];
 
 // Each page, who can open it, and the nav item it belongs to
 const ROUTES = [
-  { path: /^\/my-tasks$/, roles: WORK, nav: 'my-tasks', render: el => renderPlaceholder(el, 'my-tasks') },
+  { path: /^\/my-tasks$/, roles: WORK, nav: 'my-tasks', render: renderMyTasks },
   { path: /^\/campaigns$/, roles: WORK, nav: 'campaigns', render: renderCampaigns },
   { path: /^\/campaigns\/([0-9a-f-]{36})$/, roles: WORK, nav: 'campaigns', render: (el, id) => renderCampaign(el, id) },
   { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: el => renderPlaceholder(el, 'my-time') },
@@ -30,10 +32,9 @@ const NAV = [
   { key: 'settings', label: 'Settings', href: '#/people', roles: ['admin'] },
 ];
 
-// Directors land on Dashboards; everyone else on Campaigns for now
-// (My tasks becomes the home page in milestone 2)
+// Directors land on Dashboards; everyone else on My tasks
 function homePath() {
-  return isDirector() ? '/dashboards' : '/campaigns';
+  return isDirector() ? '/dashboards' : '/my-tasks';
 }
 
 const app = document.getElementById('app');
@@ -69,6 +70,7 @@ async function handleAuth(session) {
   if (!userId) {
     state.me = null;
     state.people = [];
+    stopRealtime();
     renderLogin(app, { error: linkError });
     return;
   }
@@ -88,6 +90,7 @@ async function handleAuth(session) {
   }
 
   renderShell();
+  if (!isDirector()) startRealtime();
   if (!window.location.hash.startsWith('#/')) {
     history.replaceState(null, '', `${window.location.pathname}#${homePath()}`);
   }
@@ -159,10 +162,11 @@ function route() {
     link.classList.toggle('active', link.dataset.nav === match.r.nav));
   app.querySelector('.menu')?.setAttribute('hidden', '');
 
-  const page = document.getElementById('page');
-  page.innerHTML = '';
+  // A fresh element per visit, so a page's live-update listeners stop once it's left
+  const view = document.createElement('div');
+  document.getElementById('page').replaceChildren(view);
   window.scrollTo(0, 0);
-  match.r.render(page, ...match.m.slice(1));
+  match.r.render(view, ...match.m.slice(1));
 }
 
 window.addEventListener('hashchange', route);

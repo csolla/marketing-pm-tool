@@ -1,5 +1,7 @@
 import { supabase } from '../supabase.js';
 import { state, canEditWork, personById } from '../state.js';
+import { onTasksChanged } from '../realtime.js';
+import { tasksDonePct } from '../tasks.js';
 import {
   esc, options, buTag, statusPill, avatar, fmtDateRange, fmtHours, toast, errorMessage, formDialog,
   BUSINESS_UNITS, CAMPAIGN_STATUSES,
@@ -8,10 +10,13 @@ import {
 // Kept between visits so the list looks the same when coming back to it
 const filters = { search: '', bu: '', status: '', owner: '' };
 
-// Hours logged and % of tasks done. Tasks arrive in milestone 2 and time
-// entries in milestone 3; until then nothing is logged and there are no tasks.
-export function campaignProgress() {
-  return { hoursLogged: 0, tasksDonePct: null };
+// Main tasks (not subtasks) of every campaign, for the "% of tasks done" column
+async function loadTaskProgress() {
+  const { data, error } = await supabase.from('tasks').select('campaign_id, parent_id, status').is('parent_id', null);
+  if (error) throw error;
+  const byCampaign = {};
+  data.forEach(t => { (byCampaign[t.campaign_id] ||= []).push(t); });
+  return Object.fromEntries(Object.entries(byCampaign).map(([id, tasks]) => [id, tasksDonePct(tasks)]));
 }
 
 export async function renderCampaigns(el) {
@@ -39,14 +44,25 @@ export async function renderCampaigns(el) {
   el.querySelector('[data-new]')?.addEventListener('click', () =>
     openCampaignForm(null, saved => { window.location.hash = `/campaigns/${saved.id}`; }));
 
-  const { data: campaigns, error } = await supabase
-    .from('campaigns').select('*').order('start_date', { ascending: false, nullsFirst: false }).order('name');
+  const [campaignResult, progressResult] = await Promise.allSettled([
+    supabase.from('campaigns').select('*').order('start_date', { ascending: false, nullsFirst: false }).order('name'),
+    loadTaskProgress(),
+  ]);
+  const error = campaignResult.reason || campaignResult.value?.error || progressResult.reason;
   if (error) {
     list.innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
     return;
   }
+  const campaigns = campaignResult.value.data;
+  let progress = progressResult.value;
 
-  const draw = () => drawList(list, campaigns);
+  const draw = () => drawList(list, campaigns, progress);
+  onTasksChanged(el, async () => {
+    try {
+      progress = await loadTaskProgress();
+      draw();
+    } catch { /* keep what's shown */ }
+  });
   el.querySelector('.search').addEventListener('input', event => { filters.search = event.target.value; draw(); });
   el.querySelectorAll('[data-filter]').forEach(select =>
     select.addEventListener('change', () => { filters[select.dataset.filter] = select.value; draw(); }));
@@ -67,7 +83,7 @@ function matches(campaign) {
     && (!q || `${campaign.name} ${campaign.description || ''}`.toLowerCase().includes(q));
 }
 
-function drawList(list, campaigns) {
+function drawList(list, campaigns, progress) {
   if (!campaigns.length) {
     list.innerHTML = `<div class="empty-state"><p>No campaigns yet.${canEditWork() ? ' Create the first one with “New campaign”.' : ''}</p></div>`;
     return;
@@ -91,7 +107,7 @@ function drawList(list, campaigns) {
         <tbody>
           ${shown.map(c => {
             const owner = personById(c.owner_id);
-            const progress = campaignProgress(c);
+            const pct = progress[c.id] ?? null;
             return `
               <tr>
                 <td><a class="row-link" href="#/campaigns/${esc(c.id)}">${esc(c.name)}</a></td>
@@ -99,8 +115,8 @@ function drawList(list, campaigns) {
                 <td class="nowrap">${esc(fmtDateRange(c.start_date, c.end_date))}</td>
                 <td>${owner ? `<span class="person">${avatar(owner, 24)}${esc(owner.name)}</span>` : '<span class="muted">—</span>'}</td>
                 <td>${statusPill(c.status)}</td>
-                <td class="num nowrap">${fmtHours(progress.hoursLogged)} / ${fmtHours(c.planned_hours)}</td>
-                <td class="num">${progress.tasksDonePct == null ? '<span class="muted">—</span>' : `${progress.tasksDonePct}%`}</td>
+                <td class="num nowrap">${fmtHours(0)} / ${fmtHours(c.planned_hours)}</td>
+                <td class="num">${pct == null ? '<span class="muted">—</span>' : `${pct}%`}</td>
               </tr>`;
           }).join('')}
         </tbody>

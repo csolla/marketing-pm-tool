@@ -13,6 +13,13 @@ export const CAMPAIGN_STATUSES = {
   on_hold: 'On hold',
 };
 
+export const TASK_STATUSES = {
+  todo: 'To do',
+  in_progress: 'In progress',
+  in_review: 'In review',
+  done: 'Done',
+};
+
 export const ROLES = {
   admin: 'Admin',
   member: 'Team member',
@@ -61,6 +68,16 @@ function parseDate(value) {
 export function fmtDate(value) {
   const date = parseDate(value);
   return date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
+
+// Short form for cards and lists: "3 Nov", with the year only if it isn't this year
+export function fmtShortDate(value) {
+  const date = parseDate(value);
+  if (!date) return '';
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString('en-GB', sameYear
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function fmtDateRange(start, end) {
