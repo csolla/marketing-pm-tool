@@ -61,9 +61,11 @@ export function renderLogin(el, { error } = {}) {
       // The database refuses non-DSD sign-ups; Supabase reports that as a generic error
       errorBox.textContent = /database error/i.test(sendError.message)
         ? `Only @${ALLOWED_EMAIL_DOMAIN} email addresses can sign in.`
-        : /rate limit|security purposes/i.test(sendError.message)
-          ? 'Too many sign-in emails were sent. Wait a minute and try again.'
-          : errorMessage(sendError);
+        : /security purposes/i.test(sendError.message)
+          ? 'A link was just sent to this address. Wait a minute before asking for another.'
+          : /rate limit/i.test(sendError.message)
+            ? 'The app has sent too many sign-in emails in the last hour. Try again later, or use the last link you received.'
+            : errorMessage(sendError);
       errorBox.hidden = false;
       return;
     }
