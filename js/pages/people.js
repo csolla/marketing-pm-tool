@@ -1,0 +1,124 @@
+import { supabase } from '../supabase.js';
+import { state, loadPeople } from '../state.js';
+import { esc, options, avatar, toast, errorMessage, confirmDialog, ROLES } from '../ui.js';
+
+// Settings > People (Admin only)
+export async function renderPeople(el) {
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>People</h1>
+        <p class="muted">Everyone with a DSD email gets an account the first time they sign in, as a Team member.</p>
+      </div>
+    </div>
+    <div data-list><p class="muted">Loading people…</p></div>`;
+
+  try {
+    await loadPeople();
+  } catch (error) {
+    el.querySelector('[data-list]').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
+    return;
+  }
+  draw(el);
+}
+
+function draw(el) {
+  const people = [...state.people].sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
+  const list = el.querySelector('[data-list]');
+
+  list.innerHTML = `
+    <div class="table-wrap">
+      <table class="table people-table">
+        <thead>
+          <tr>
+            <th>Person</th><th>Role</th><th>Hours per day</th><th>Counts in capacity</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${people.map(p => {
+            const self = p.id === state.me.id;
+            return `
+              <tr data-id="${esc(p.id)}" class="${p.active ? '' : 'inactive'}">
+                <td>
+                  <span class="person">${avatar(p, 32)}
+                    <span><strong>${esc(p.name)}</strong>${self ? ' <span class="muted">(you)</span>' : ''}<br>
+                    <span class="muted small">${esc(p.email)}</span></span>
+                  </span>
+                </td>
+                <td>
+                  <select data-field="role" aria-label="Role for ${esc(p.name)}" ${self || !p.active ? 'disabled' : ''}>
+                    ${options(ROLES, p.role)}
+                  </select>
+                </td>
+                <td>
+                  <input class="hours-input" type="number" data-field="hours_per_day" min="0" max="24" step="0.5"
+                    value="${esc(p.hours_per_day)}" aria-label="Hours per day for ${esc(p.name)}" ${p.active ? '' : 'disabled'}>
+                </td>
+                <td>
+                  <input type="checkbox" data-field="counts_in_capacity" ${p.counts_in_capacity ? 'checked' : ''}
+                    aria-label="${esc(p.name)} counts in capacity" ${p.active ? '' : 'disabled'}>
+                </td>
+                <td class="nowrap">
+                  ${p.active ? '<span class="status status-in_progress">Active</span>' : '<span class="status status-on_hold">Deactivated</span>'}
+                  ${self ? '' : `<button class="btn btn-small ${p.active ? 'btn-danger-outline' : ''}" type="button" data-toggle-active>
+                    ${p.active ? 'Deactivate' : 'Reactivate'}</button>`}
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  list.querySelectorAll('[data-field]').forEach(input => input.addEventListener('change', () => saveField(el, input)));
+  list.querySelectorAll('[data-toggle-active]').forEach(button => button.addEventListener('click', () => toggleActive(el, button)));
+}
+
+async function saveField(el, input) {
+  const id = input.closest('tr').dataset.id;
+  const person = state.people.find(p => p.id === id);
+  const field = input.dataset.field;
+  let value;
+  if (field === 'counts_in_capacity') value = input.checked;
+  else if (field === 'hours_per_day') {
+    value = Number(input.value);
+    if (input.value === '' || !Number.isFinite(value) || value < 0 || value > 24) {
+      toast('Hours per day must be between 0 and 24.', 'error');
+      input.value = person.hours_per_day;
+      return;
+    }
+  } else value = input.value;
+
+  const { error } = await supabase.from('people').update({ [field]: value }).eq('id', id);
+  if (error) {
+    toast(errorMessage(error), 'error');
+  } else {
+    person[field] = value;
+    toast(field === 'role' ? `${person.name} is now ${ROLES[value]}` : `Saved for ${person.name}`);
+  }
+  draw(el);
+}
+
+async function toggleActive(el, button) {
+  const id = button.closest('tr').dataset.id;
+  const person = state.people.find(p => p.id === id);
+  const makeActive = !person.active;
+
+  if (!makeActive) {
+    const ok = await confirmDialog({
+      title: `Deactivate ${person.name}?`,
+      message: "They'll be signed out and won't be able to sign in. Everything they've done, including logged hours, is kept. You can reactivate them later.",
+      confirmLabel: 'Deactivate',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+
+  const { error } = await supabase.rpc('set_person_active', { person_id: id, make_active: makeActive });
+  if (error) {
+    toast(errorMessage(error), 'error');
+    return;
+  }
+  person.active = makeActive;
+  toast(makeActive ? `${person.name} can sign in again` : `${person.name} has been deactivated`);
+  draw(el);
+}
