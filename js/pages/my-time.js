@@ -223,11 +223,10 @@ function drawGrid(page) {
                 const entries = cellEntries(row.key, day);
                 const minutes = sumMinutes(entries);
                 const { weekday } = dayParts(day);
-                if (entries.length > 1) {
-                  return `<td class="cell"><span class="cell-multi" title="${entries.length} entries: edit them in the list below">${esc(hoursText(minutes))}</span></td>`;
-                }
-                return `<td class="cell"><input class="cell-input" data-cell="${esc(row.key)}@${day}" inputmode="decimal"
-                  value="${esc(hoursText(minutes))}" aria-label="${esc(row.label)}, ${esc(weekday)}" ${editable ? '' : 'disabled'}></td>`;
+                const multi = entries.length > 1;
+                return `<td class="cell"><input class="cell-input ${multi ? 'is-multi' : ''}" data-cell="${esc(row.key)}@${day}" inputmode="decimal"
+                  value="${esc(hoursText(minutes))}" aria-label="${esc(row.label)}, ${esc(weekday)}" ${editable ? '' : 'disabled'}
+                  ${multi ? `title="${entries.length} entries. Typing a new total merges them into one."` : ''}></td>`;
               }).join('')}
               <td class="num total">${fmtHours(sumMinutes(page.entries.filter(e => rowKey(e) === row.key)) / 60)}</td>
             </tr>`).join('') : `
@@ -282,7 +281,23 @@ async function saveCell(page, input) {
         });
       }
     } else if (!minutes) {
-      await deleteEntry(existing[0].id);
+      if (existing.length > 1) {
+        const ok = await confirmDialog({
+          title: 'Delete these entries?',
+          message: `This cell has ${existing.length} entries (${fmtHours(sumMinutes(existing) / 60)} in total). All of them will be deleted.`,
+          confirmLabel: 'Delete all',
+          danger: true,
+        });
+        if (!ok) return reset();
+      }
+      for (const entry of existing) await deleteEntry(entry.id);
+    } else if (existing.length > 1) {
+      // Several entries in one cell: keep the first with the new total and
+      // its notes combined, and remove the rest
+      const [first, ...rest] = existing;
+      const notes = existing.map(e => e.note).filter(Boolean);
+      await updateEntry(first.id, { minutes, note: notes.length ? notes.join('; ') : null });
+      for (const entry of rest) await deleteEntry(entry.id);
     } else if (minutes !== existing[0].minutes) {
       await updateEntry(existing[0].id, { minutes });
     }
