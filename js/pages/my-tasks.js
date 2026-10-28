@@ -53,7 +53,7 @@ async function load(page) {
     .from('tasks')
     .select(`id, title, status, due_date, parent_id, position,
       campaign:campaigns(id, name, business_unit),
-      parent:tasks!tasks_parent_id_fkey(id, title, due_date)`)
+      parent:parent_id(id, title, due_date)`)
     .eq('assignee_id', state.me.id);
   if (error) {
     page.el.querySelector('[data-list]').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
