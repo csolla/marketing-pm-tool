@@ -33,7 +33,7 @@ export function addDays(iso, days) {
 
 const ENTRY_FIELDS = `*,
   campaign:campaigns(id, name, business_unit),
-  task:tasks(id, title, parent_id, parent:tasks!tasks_parent_id_fkey(title))`;
+  task:tasks(id, title, parent_id, parent:parent_id(title))`;
 
 export async function loadEntries(personId, from, to) {
   const { data, error } = await supabase
