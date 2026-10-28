@@ -7,6 +7,7 @@ import {
 import { startTimer } from '../timer.js';
 import { esc, options, buTag, fmtHours, toast, errorMessage, confirmDialog } from '../ui.js';
 import { openTimeEntryForm, pickCampaignTask } from './time-entry-form.js';
+import { renderTeamTime } from './team-time.js';
 
 const WEEKEND_KEY = 'my-time-show-weekend';
 
@@ -74,7 +75,8 @@ export async function renderMyTime(el) {
     <section class="section">
       <h2>Entries this week</h2>
       <div data-entries></div>
-    </section>`;
+    </section>
+    ${isAdmin() ? '<section class="section team-time" data-team></section>' : ''}`;
 
   el.querySelectorAll('[data-week]').forEach(button => button.addEventListener('click', () => {
     const shift = Number(button.dataset.week);
@@ -82,11 +84,7 @@ export async function renderMyTime(el) {
     page.extraRows = [];
     load(page);
   }));
-  el.querySelector('[data-person]').addEventListener('change', event => {
-    page.personId = event.target.value;
-    page.extraRows = [];
-    load(page);
-  });
+  el.querySelector('[data-person]').addEventListener('change', event => showPerson(page, event.target.value));
   el.querySelector('[data-weekend]').addEventListener('change', event => {
     page.showWeekend = event.target.checked;
     try { localStorage.setItem(WEEKEND_KEY, page.showWeekend ? '1' : '0'); } catch { /* not saved; fine */ }
@@ -97,6 +95,13 @@ export async function renderMyTime(el) {
   onLiveChange(el, 'time-changed', () => load(page));
 }
 
+function showPerson(page, personId) {
+  page.personId = personId;
+  page.extraRows = [];
+  page.el.querySelector('[data-person]').value = personId;
+  load(page);
+}
+
 async function load(page) {
   const loadId = ++page.loadId;
   page.el.querySelector('[data-week-label]').textContent = weekLabel(page.start);
@@ -105,6 +110,16 @@ async function load(page) {
     if (loadId !== page.loadId) return;
     page.entries = entries;
     draw(page);
+    const team = page.el.querySelector('[data-team]');
+    if (team) {
+      renderTeamTime(team, {
+        week: page.start,
+        onPickPerson: id => {
+          showPerson(page, id);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+      });
+    }
   } catch (error) {
     page.el.querySelector('[data-grid]').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
   }

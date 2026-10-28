@@ -534,6 +534,17 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .form-note { margin-bottom: 12px; }
 .btn-discard { margin-right: auto; color: var(--danger); padding-left: 0; }
 
+/* Team time ---------------------------------------------------------------- */
+
+.team-time { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
+.team-time-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.team-time-head h2 { margin: 0 8px 0 0; }
+.team-grid tbody tr.clickable { cursor: pointer; }
+.team-grid tbody tr.clickable:hover { background: var(--surface-2); }
+.team-grid .unit-col { color: var(--muted); }
+.team-grid tfoot .unit-col { color: var(--text); }
+.team-time > .muted { margin-top: 8px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
