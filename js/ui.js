@@ -86,9 +86,10 @@ export function fmtDateRange(start, end) {
   return start ? `From ${fmtDate(start)}` : `Until ${fmtDate(end)}`;
 }
 
+// Up to 2 decimals, without trailing zeros: 2 h, 1.5 h, 0.42 h
 export function fmtHours(value) {
   const n = Number(value) || 0;
-  return `${Number.isInteger(n) ? n : n.toFixed(1)} h`;
+  return `${parseFloat(n.toFixed(2))} h`;
 }
 
 export function toast(message, type = 'success') {
@@ -104,6 +105,9 @@ export function toast(message, type = 'success') {
 export function errorMessage(error) {
   const msg = error?.message || String(error);
   if (/row-level security|permission denied/i.test(msg)) return "You don't have permission to do that.";
+  if (/foreign key/i.test(msg) && /time_entries/.test(msg)) {
+    return "This has hours logged, so it can't be deleted. Set it to Done instead.";
+  }
   if (/Failed to fetch|NetworkError/i.test(msg)) return 'Could not reach the server. Check your connection and try again.';
   return msg;
 }

@@ -1,8 +1,9 @@
 import { supabase } from '../supabase.js';
 import { state } from '../state.js';
-import { onTasksChanged } from '../realtime.js';
-import { updateTask, effectiveDue, dueGroup, isOverdue, DUE_GROUPS } from '../tasks.js';
-import { esc, buTag, fmtShortDate, toast, errorMessage } from '../ui.js';
+import { onTasksChanged, onLiveChange } from '../realtime.js';
+import { updateTask, effectiveDue, dueGroup, isOverdue, todayIso, DUE_GROUPS } from '../tasks.js';
+import { weekMinutes, weekStart } from '../time.js';
+import { esc, buTag, fmtShortDate, fmtHours, toast, errorMessage } from '../ui.js';
 import { openTaskPanel } from './task-panel.js';
 
 const SHOW_DONE_KEY = 'my-tasks-show-completed';
@@ -17,7 +18,10 @@ export async function renderMyTasks(el) {
 
   el.innerHTML = `
     <div class="page-header">
-      <h1>My tasks</h1>
+      <div>
+        <h1>My tasks</h1>
+        <a class="week-hours" href="#/my-time" data-week-hours>Hours this week: …</a>
+      </div>
       <label class="toggle">
         <input type="checkbox" data-show-done ${page.showDone ? 'checked' : ''}>
         Show completed
@@ -31,8 +35,17 @@ export async function renderMyTasks(el) {
     draw(page);
   });
 
+  loadWeekHours(el);
+  onLiveChange(el, 'time-changed', () => loadWeekHours(el));
   await load(page);
   onTasksChanged(el, () => load(page), { isBusy: () => page.ticking });
+}
+
+async function loadWeekHours(el) {
+  try {
+    const minutes = await weekMinutes(state.me.id, weekStart(todayIso()));
+    el.querySelector('[data-week-hours]').textContent = `Hours this week: ${fmtHours(minutes / 60)}`;
+  } catch { /* leave the placeholder */ }
 }
 
 async function load(page) {

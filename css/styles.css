@@ -461,6 +461,79 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .my-task-campaign { color: var(--muted); font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .my-task .due { width: 64px; text-align: right; }
 
+/* Time: timer bar ------------------------------------------------------------ */
+
+.timer-slot { flex-shrink: 0; }
+.timer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: var(--danger-bg);
+  color: var(--text);
+  font-size: 14px;
+  max-width: 360px;
+}
+.timer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .timer-dot { animation: none; } }
+.timer-clock { font-variant-numeric: tabular-nums; font-weight: 650; }
+.timer-label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.timer-bar .btn-small { margin-left: 0; }
+
+/* Time: My time page ------------------------------------------------------------ */
+
+.time-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 14px; }
+.week-nav { display: flex; align-items: center; gap: 6px; }
+.week-nav strong { margin-left: 8px; white-space: nowrap; }
+.inline-field { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 550; }
+
+.tag-internal { color: var(--muted); background: var(--surface-2); }
+
+.time-grid th, .time-grid td { padding: 8px 10px; }
+.time-grid .row-label { min-width: 220px; }
+.time-grid .row-label .tag { margin-right: 6px; }
+.time-grid th.is-today { color: var(--accent); }
+.time-grid .cell { width: 76px; text-align: right; }
+.cell-input { width: 64px; min-height: 32px; padding: 4px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.cell-input:disabled { background: transparent; border-color: transparent; color: var(--text); }
+.cell-multi { display: inline-block; width: 64px; padding: 4px 9px; text-align: right; border: 1px dashed var(--border); border-radius: 8px; cursor: help; }
+.time-grid .total, .time-grid tfoot th { font-variant-numeric: tabular-nums; }
+.time-grid tfoot th { background: var(--surface-2); color: var(--text); border-bottom: 0; }
+.time-grid .week-total { color: var(--accent); }
+.time-grid tbody tr:hover { background: transparent; }
+.empty-row { text-align: center; padding: 24px; }
+
+.entries-table td { vertical-align: top; }
+.entries-table .tag { margin-right: 6px; }
+.split-note, .hours-split { display: block; }
+.row-actions { text-align: right; }
+.row-actions .btn-small:first-child { margin-left: 0; }
+
+.over-plan { color: var(--danger); font-weight: 650; }
+.delete-note { margin: -4px 0 12px; }
+
+/* Time: task panel, My tasks, settings, forms --------------------------------- */
+
+.time-box { margin: 4px 0 16px; padding: 12px 14px; background: var(--surface-2); border-radius: var(--radius); }
+.time-box h3 { font-size: 15px; margin: 0 0 8px; }
+.time-box-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.time-box-row .btn-small { margin-left: 0; }
+.subtask-timer { font-size: 13px !important; color: var(--muted); }
+
+.week-hours { display: inline-block; margin-top: 4px; color: var(--muted); font-weight: 550; text-decoration: none; }
+.week-hours:hover { color: var(--accent); }
+
+.split-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 20px; }
+.split-card h2 { margin-bottom: 4px; }
+.split-card p { max-width: 520px; }
+.split-inputs { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.split-inputs input { width: 72px; }
+
+.form-note { margin-bottom: 12px; }
+.btn-discard { margin-right: auto; color: var(--danger); padding-left: 0; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -484,4 +557,9 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
   .my-task-main { flex-basis: calc(100% - 40px); }
   .my-task-campaign { margin-left: 30px; }
   .my-task .due { width: auto; margin-left: auto; }
+  .timer-bar { max-width: 46vw; padding-left: 10px; }
+  .timer-label { display: none; }
+  .time-controls { gap: 10px; }
+  .week-nav strong { width: 100%; margin: 4px 0 0; }
+  .week-nav { flex-wrap: wrap; }
 }

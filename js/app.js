@@ -2,8 +2,10 @@ import { supabase } from './supabase.js';
 import { state, loadMe, loadPeople, isDirector } from './state.js';
 import { esc, avatar, ROLES, errorMessage } from './ui.js';
 import { startRealtime, stopRealtime } from './realtime.js';
+import { loadTimer, mountTimerBar, clearTimer } from './timer.js';
 import { renderLogin } from './pages/login.js';
 import { renderMyTasks } from './pages/my-tasks.js';
+import { renderMyTime } from './pages/my-time.js';
 import { renderCampaigns } from './pages/campaigns.js';
 import { renderCampaign } from './pages/campaign.js';
 import { renderPeople } from './pages/people.js';
@@ -18,7 +20,7 @@ const ROUTES = [
   { path: /^\/my-tasks$/, roles: WORK, nav: 'my-tasks', render: renderMyTasks },
   { path: /^\/campaigns$/, roles: WORK, nav: 'campaigns', render: renderCampaigns },
   { path: /^\/campaigns\/([0-9a-f-]{36})$/, roles: WORK, nav: 'campaigns', render: (el, id) => renderCampaign(el, id) },
-  { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: el => renderPlaceholder(el, 'my-time') },
+  { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: renderMyTime },
   { path: /^\/dashboards$/, roles: ['admin', 'director'], nav: 'dashboards', render: el => renderPlaceholder(el, 'dashboards') },
   { path: /^\/people$/, roles: ['admin'], nav: 'settings', render: renderPeople },
   { path: /^\/profile$/, roles: ALL, nav: null, render: renderProfile },
@@ -71,6 +73,7 @@ async function handleAuth(session) {
     state.me = null;
     state.people = [];
     stopRealtime();
+    clearTimer();
     renderLogin(app, { error: linkError });
     return;
   }
@@ -90,7 +93,11 @@ async function handleAuth(session) {
   }
 
   renderShell();
-  if (!isDirector()) startRealtime();
+  if (!isDirector()) {
+    startRealtime();
+    mountTimerBar(app.querySelector('.timer-slot'));
+    loadTimer().catch(() => {});
+  }
   if (!window.location.hash.startsWith('#/')) {
     history.replaceState(null, '', `${window.location.pathname}#${homePath()}`);
   }
@@ -113,6 +120,7 @@ function renderShell() {
         ${NAV.filter(item => item.roles.includes(role)).map(item =>
           `<a class="nav-link" data-nav="${item.key}" href="${item.href}">${esc(item.label)}</a>`).join('')}
       </nav>
+      <div class="timer-slot"></div>
       <div class="user-menu">
         <button class="user-button" type="button" aria-haspopup="true" aria-expanded="false" title="${esc(state.me.name)}">
           ${avatar(state.me, 32)}

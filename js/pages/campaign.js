@@ -1,7 +1,8 @@
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/+esm';
 import { supabase } from '../supabase.js';
 import { canEditWork, isAdmin, personById } from '../state.js';
-import { onTasksChanged } from '../realtime.js';
+import { onTasksChanged, onLiveChange } from '../realtime.js';
+import { loadCampaignHours } from '../time.js';
 import {
   loadCampaignTasks, createTask, updateTask, positionBetween, byPosition, tasksDonePct, isOverdue,
 } from '../tasks.js';
@@ -51,16 +52,19 @@ export async function renderCampaign(el, id) {
         </div>
         <div class="actions">
           ${canEditWork() ? '<button class="btn" type="button" data-edit>Edit</button>' : ''}
-          ${isAdmin() ? '<button class="btn btn-danger-outline" type="button" data-delete>Delete</button>' : ''}
+          ${isAdmin() ? '<button class="btn btn-danger-outline" type="button" data-delete hidden>Delete</button>' : ''}
         </div>
       </div>
+      <p class="muted small delete-note" data-delete-note hidden>
+        This campaign has hours logged, so it can't be deleted. Set it to Done or On hold instead.
+      </p>
       ${campaign.description
         ? `<p class="description">${esc(campaign.description)}</p>`
         : '<p class="muted">No description.</p>'}
       <dl class="details">
         <div><dt>Dates</dt><dd>${esc(fmtDateRange(campaign.start_date, campaign.end_date))}</dd></div>
         <div><dt>Owner</dt><dd>${owner ? `<span class="person">${avatar(owner, 24)}${esc(owner.name)}</span>` : '—'}</dd></div>
-        <div><dt>Hours logged / planned</dt><dd>${fmtHours(0)} / ${fmtHours(campaign.planned_hours)}</dd></div>
+        <div><dt>Hours logged / planned</dt><dd data-hours>…</dd></div>
         <div><dt>Tasks done</dt><dd data-progress></dd></div>
       </dl>
     </section>
@@ -89,6 +93,8 @@ export async function renderCampaign(el, id) {
   }));
 
   drawTasks(page);
+  loadHours(page);
+  onLiveChange(el, 'time-changed', () => loadHours(page));
 
   onTasksChanged(el, async () => {
     try {
@@ -96,6 +102,29 @@ export async function renderCampaign(el, id) {
       drawTasks(page);
     } catch { /* keep what's shown */ }
   }, { isBusy: () => page.dragging });
+}
+
+// Hours logged, with the Education / Planning Center split for Shared campaigns.
+// Campaigns with hours can't be deleted.
+async function loadHours(page) {
+  const { el, campaign } = page;
+  let totals;
+  try {
+    totals = (await loadCampaignHours(campaign.id))[campaign.id];
+  } catch {
+    return;
+  }
+  const hours = Number(totals?.hours || 0);
+  const split = campaign.business_unit === 'shared' && hours
+    ? `<span class="muted small hours-split">${fmtHours(totals.education_hours)} Education · ${fmtHours(totals.planning_center_hours)} Planning Center</span>`
+    : '';
+  el.querySelector('[data-hours]').innerHTML =
+    `<span class="${hours > Number(campaign.planned_hours) && Number(campaign.planned_hours) > 0 ? 'over-plan' : ''}">${fmtHours(hours)}</span> / ${fmtHours(campaign.planned_hours)}${split}`;
+  const remove = el.querySelector('[data-delete]');
+  if (remove) {
+    remove.hidden = hours > 0;
+    el.querySelector('[data-delete-note]').hidden = hours === 0;
+  }
 }
 
 function drawTasks(page) {

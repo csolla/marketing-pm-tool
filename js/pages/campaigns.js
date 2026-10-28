@@ -1,7 +1,8 @@
 import { supabase } from '../supabase.js';
 import { state, canEditWork, personById } from '../state.js';
-import { onTasksChanged } from '../realtime.js';
+import { onTasksChanged, onLiveChange } from '../realtime.js';
 import { tasksDonePct } from '../tasks.js';
+import { loadCampaignHours } from '../time.js';
 import {
   esc, options, buTag, statusPill, avatar, fmtDateRange, fmtHours, toast, errorMessage, formDialog,
   BUSINESS_UNITS, CAMPAIGN_STATUSES,
@@ -44,22 +45,30 @@ export async function renderCampaigns(el) {
   el.querySelector('[data-new]')?.addEventListener('click', () =>
     openCampaignForm(null, saved => { window.location.hash = `/campaigns/${saved.id}`; }));
 
-  const [campaignResult, progressResult] = await Promise.allSettled([
+  const [campaignResult, progressResult, hoursResult] = await Promise.allSettled([
     supabase.from('campaigns').select('*').order('start_date', { ascending: false, nullsFirst: false }).order('name'),
     loadTaskProgress(),
+    loadCampaignHours(),
   ]);
-  const error = campaignResult.reason || campaignResult.value?.error || progressResult.reason;
+  const error = campaignResult.reason || campaignResult.value?.error || progressResult.reason || hoursResult.reason;
   if (error) {
     list.innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
     return;
   }
   const campaigns = campaignResult.value.data;
   let progress = progressResult.value;
+  let hours = hoursResult.value;
 
-  const draw = () => drawList(list, campaigns, progress);
+  const draw = () => drawList(list, campaigns, progress, hours);
   onTasksChanged(el, async () => {
     try {
       progress = await loadTaskProgress();
+      draw();
+    } catch { /* keep what's shown */ }
+  });
+  onLiveChange(el, 'time-changed', async () => {
+    try {
+      hours = await loadCampaignHours();
       draw();
     } catch { /* keep what's shown */ }
   });
@@ -83,7 +92,7 @@ function matches(campaign) {
     && (!q || `${campaign.name} ${campaign.description || ''}`.toLowerCase().includes(q));
 }
 
-function drawList(list, campaigns, progress) {
+function drawList(list, campaigns, progress, hours) {
   if (!campaigns.length) {
     list.innerHTML = `<div class="empty-state"><p>No campaigns yet.${canEditWork() ? ' Create the first one with “New campaign”.' : ''}</p></div>`;
     return;
@@ -108,6 +117,8 @@ function drawList(list, campaigns, progress) {
           ${shown.map(c => {
             const owner = personById(c.owner_id);
             const pct = progress[c.id] ?? null;
+            const logged = Number(hours[c.id]?.hours || 0);
+            const overPlan = Number(c.planned_hours) > 0 && logged > Number(c.planned_hours);
             return `
               <tr>
                 <td><a class="row-link" href="#/campaigns/${esc(c.id)}">${esc(c.name)}</a></td>
@@ -115,7 +126,7 @@ function drawList(list, campaigns, progress) {
                 <td class="nowrap">${esc(fmtDateRange(c.start_date, c.end_date))}</td>
                 <td>${owner ? `<span class="person">${avatar(owner, 24)}${esc(owner.name)}</span>` : '<span class="muted">—</span>'}</td>
                 <td>${statusPill(c.status)}</td>
-                <td class="num nowrap">${fmtHours(0)} / ${fmtHours(c.planned_hours)}</td>
+                <td class="num nowrap"><span class="${overPlan ? 'over-plan' : ''}">${fmtHours(logged)}</span> / ${fmtHours(c.planned_hours)}</td>
                 <td class="num">${pct == null ? '<span class="muted">—</span>' : `${pct}%`}</td>
               </tr>`;
           }).join('')}

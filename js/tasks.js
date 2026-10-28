@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { announce } from './realtime.js';
 
 // Dates are 'YYYY-MM-DD' strings in local time, so they compare as text
 export function isoDate(date) {
@@ -58,10 +59,8 @@ export function tasksDonePct(tasks) {
   return Math.round(main.filter(t => t.status === 'done').length / main.length * 100);
 }
 
-// Tell open pages a task changed. Live updates do the same for other people's
-// changes; this makes your own changes show immediately.
 export function announceTaskChange() {
-  window.dispatchEvent(new CustomEvent('tasks-changed', { detail: { local: true } }));
+  announce('tasks-changed');
 }
 
 export async function loadCampaignTasks(campaignId) {

@@ -1,8 +1,11 @@
 import { supabase } from '../supabase.js';
 import { state } from '../state.js';
-import { onTasksChanged } from '../realtime.js';
+import { onTasksChanged, onLiveChange } from '../realtime.js';
 import { createTask, updateTask, deleteTask, byPosition } from '../tasks.js';
-import { esc, options, buTag, toast, errorMessage, confirmDialog, TASK_STATUSES } from '../ui.js';
+import { loadTasksHours } from '../time.js';
+import { startTimer } from '../timer.js';
+import { esc, options, buTag, fmtHours, toast, errorMessage, confirmDialog, TASK_STATUSES } from '../ui.js';
+import { openTimeEntryForm } from './time-entry-form.js';
 
 // The task side panel. One at a time, opened from the campaign board/list
 // and from My tasks. Every field saves when you leave it.
@@ -47,6 +50,8 @@ export async function openTaskPanel(taskId) {
   Object.assign(current, data);
   render();
   onTasksChanged(panel, refresh, { delay: 300 });
+  onLiveChange(panel, 'time-changed', loadHours, { delay: 300 });
+  loadHours();
 }
 
 export function closeTaskPanel() {
@@ -103,6 +108,15 @@ function render() {
       </div>
       <label class="field"><span>Description</span>
         <textarea data-field="description" rows="5" placeholder="Add more detail"></textarea></label>
+      <section class="time-box">
+        <h3>Time</h3>
+        <div class="time-box-row">
+          <span data-hours class="muted">Loading hours…</span>
+          <span class="spacer"></span>
+          <button class="btn btn-small" type="button" data-start-timer>▶ Start timer</button>
+          <button class="btn btn-small" type="button" data-add-time>Add time</button>
+        </div>
+      </section>
       <section class="subtasks">
         <h3>Subtasks <span class="muted" data-subcount></span></h3>
         <ul class="subtask-list" data-subtasks></ul>
@@ -119,11 +133,18 @@ function render() {
   panel.querySelector('[data-delete]').addEventListener('click', removeTask);
   panel.querySelectorAll('[data-field]').forEach(input => input.addEventListener('change', () => saveField(input)));
   panel.querySelector('[data-add-subtask]').addEventListener('submit', addSubtask);
+  panel.querySelector('[data-start-timer]').addEventListener('click', () =>
+    startTimer({ campaign_id: task.campaign_id, task_id: task.id }));
+  panel.querySelector('[data-add-time]').addEventListener('click', () =>
+    openTimeEntryForm({ defaults: { campaign_id: task.campaign_id, task_id: task.id } })
+      .catch(error => toast(errorMessage(error), 'error')));
 
   const list = panel.querySelector('[data-subtasks]');
   list.addEventListener('change', event => saveSubtaskField(event.target));
   list.addEventListener('click', event => {
-    if (event.target.closest('[data-remove]')) removeSubtask(event.target.closest('li').dataset.id);
+    const id = event.target.closest('li')?.dataset.id;
+    if (event.target.closest('[data-remove]')) removeSubtask(id);
+    if (event.target.closest('[data-sub-timer]')) startTimer({ campaign_id: task.campaign_id, task_id: id });
   });
   panel.querySelector('[data-close]').focus();
 }
@@ -150,8 +171,29 @@ function renderSubtasks() {
       <input class="subtask-title" data-sub="title" value="${esc(s.title)}" aria-label="Subtask title" maxlength="300">
       <select class="subtask-assignee" data-sub="assignee_id" aria-label="Subtask assignee">${assigneeOptions(s.assignee_id)}</select>
       <input class="subtask-due" type="date" data-sub="due_date" value="${esc(s.due_date || '')}" aria-label="Subtask due date">
+      <button class="icon-btn subtask-timer" type="button" data-sub-timer aria-label="Start timer on this subtask" title="Start timer">▶</button>
       <button class="icon-btn" type="button" data-remove aria-label="Remove subtask">×</button>
     </li>`).join('');
+}
+
+// Hours on the task and its subtasks. Tasks with hours can't be deleted.
+async function loadHours() {
+  const mine = current;
+  if (!mine?.task) return;
+  let hours;
+  try {
+    hours = await loadTasksHours([mine.task.id, ...mine.subtasks.map(s => s.id)]);
+  } catch {
+    return;
+  }
+  if (current !== mine) return;
+  mine.hours = hours;
+  mine.panel.querySelector('[data-hours]').textContent = hours
+    ? `${fmtHours(hours)} logged${mine.subtasks.length ? ' (including subtasks)' : ''}`
+    : 'No hours logged yet';
+  const remove = mine.panel.querySelector('[data-delete]');
+  remove.disabled = hours > 0;
+  remove.title = hours > 0 ? "This task has hours logged, so it can't be deleted. Set it to Done instead." : '';
 }
 
 // Someone (maybe you, in another view) changed a task: reload what's shown
@@ -175,6 +217,7 @@ async function refresh() {
   fillFields();
   // Wait to redraw subtasks while one is being edited
   if (!mine.panel.querySelector('[data-subtasks]').contains(document.activeElement)) renderSubtasks();
+  loadHours();
 }
 
 async function saveField(input) {

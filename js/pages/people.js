@@ -11,7 +11,22 @@ export async function renderPeople(el) {
         <p class="muted">Everyone with a DSD email gets an account the first time they sign in, as a Team member.</p>
       </div>
     </div>
+    <form class="card split-card" data-split novalidate>
+      <div>
+        <h2>Shared campaigns split</h2>
+        <p class="muted small">How hours logged on Shared campaigns divide between the two business units.
+          Changes apply to hours logged from now on; past entries keep their split.</p>
+      </div>
+      <div class="split-inputs">
+        <label class="inline-field">Education
+          <input type="number" name="education" min="0" max="100" step="1" required aria-label="Education percentage"> %</label>
+        <span class="muted">Planning Center <strong data-pc>…</strong></span>
+        <button class="btn btn-primary btn-small" type="submit">Save</button>
+      </div>
+    </form>
     <div data-list><p class="muted">Loading people…</p></div>`;
+
+  setUpSplit(el);
 
   try {
     await loadPeople();
@@ -20,6 +35,36 @@ export async function renderPeople(el) {
     return;
   }
   draw(el);
+}
+
+async function setUpSplit(el) {
+  const form = el.querySelector('[data-split]');
+  const input = form.elements.education;
+  const showPc = () => {
+    const edu = Number(input.value);
+    form.querySelector('[data-pc]').textContent = input.value !== '' && edu >= 0 && edu <= 100 ? `${100 - edu} %` : '–';
+  };
+  input.addEventListener('input', showPc);
+
+  const { data, error } = await supabase.from('team_settings').select('shared_split_education').maybeSingle();
+  if (error || !data) {
+    form.querySelector('.split-inputs').innerHTML = `<p class="form-error">${esc(errorMessage(error || 'Settings not found'))}</p>`;
+    return;
+  }
+  input.value = data.shared_split_education;
+  showPc();
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const edu = Number(input.value);
+    if (input.value === '' || !Number.isInteger(edu) || edu < 0 || edu > 100) {
+      toast('Use a whole number from 0 to 100.', 'error');
+      return;
+    }
+    const { error: saveError } = await supabase.from('team_settings').update({ shared_split_education: edu }).eq('id', true);
+    if (saveError) toast(errorMessage(saveError), 'error');
+    else toast(`Shared split is now ${edu} / ${100 - edu}`);
+  });
 }
 
 function draw(el) {

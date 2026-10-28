@@ -1,16 +1,23 @@
 import { supabase } from './supabase.js';
 
-// One live connection for task changes made by anyone. Each change is passed
-// on as a 'tasks-changed' window event, which pages listen to.
+// One live connection for changes made by anyone. Each change is passed on
+// as a window event, which pages listen to.
+const EVENTS = {
+  tasks: 'tasks-changed',
+  time_entries: 'time-changed',
+  timers: 'timer-changed',
+};
+
 let channel = null;
 
 export function startRealtime() {
   if (channel) return;
-  channel = supabase
-    .channel('tasks')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload =>
-      window.dispatchEvent(new CustomEvent('tasks-changed', { detail: payload })))
-    .subscribe();
+  channel = supabase.channel('live');
+  Object.entries(EVENTS).forEach(([table, eventName]) => {
+    channel.on('postgres_changes', { event: '*', schema: 'public', table }, payload =>
+      window.dispatchEvent(new CustomEvent(eventName, { detail: payload })));
+  });
+  channel.subscribe();
 }
 
 export function stopRealtime() {
@@ -18,10 +25,17 @@ export function stopRealtime() {
   channel = null;
 }
 
-// Calls handler (at most every `delay` ms) while `el` is on the page; stops
-// listening once the page is left. If isBusy() says the person is mid-drag or
-// mid-typing, the refresh waits until they're done.
-export function onTasksChanged(el, handler, { delay = 250, isBusy = () => false } = {}) {
+// Tell open pages something changed. Live updates do the same for other
+// people's changes; this makes your own changes show immediately.
+export function announce(eventName) {
+  window.dispatchEvent(new CustomEvent(eventName, { detail: { local: true } }));
+}
+
+// Calls handler (at most every `delay` ms) when any of `eventNames` fires,
+// while `el` is on the page; stops listening once the page is left. If
+// isBusy() says the person is mid-drag or mid-typing, the refresh waits.
+export function onLiveChange(el, eventNames, handler, { delay = 250, isBusy = () => false } = {}) {
+  const names = [].concat(eventNames);
   let timer = null;
   const run = () => {
     if (!el.isConnected) return;
@@ -33,11 +47,15 @@ export function onTasksChanged(el, handler, { delay = 250, isBusy = () => false 
   };
   const listener = () => {
     if (!el.isConnected) {
-      window.removeEventListener('tasks-changed', listener);
+      names.forEach(name => window.removeEventListener(name, listener));
       return;
     }
     clearTimeout(timer);
     timer = setTimeout(run, delay);
   };
-  window.addEventListener('tasks-changed', listener);
+  names.forEach(name => window.addEventListener(name, listener));
+}
+
+export function onTasksChanged(el, handler, options) {
+  onLiveChange(el, 'tasks-changed', handler, options);
 }
