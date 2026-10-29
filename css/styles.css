@@ -751,6 +751,27 @@ body.presenting .budget-figures strong { font-size: 26px; }
 .activity-count { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--muted); }
 .activity-count svg { width: 14px; height: 14px; }
 
+/* Help ----------------------------------------------------------------------- */
+
+.help { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: start; }
+.help-toc { position: sticky; top: 76px; }
+.help-toc .search { width: 100%; margin-bottom: 10px; }
+.help-toc ol { list-style: none; margin: 0; padding: 0; }
+.help-toc button {
+  width: 100%; text-align: left; padding: 6px 10px; border: 0; border-radius: 6px; background: none;
+  color: var(--muted); font: inherit; font-weight: 550; cursor: pointer;
+}
+.help-toc button:hover { background: var(--surface-2); color: var(--text); }
+.help-body { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.help-section { scroll-margin-top: 76px; }
+.help-section h2 { margin-bottom: 10px; }
+.help-section h3 { font-size: 15px; margin: 18px 0 6px; }
+.help-section p, .help-section ol, .help-section ul { margin: 0 0 10px; }
+.help-section ol, .help-section ul { padding-left: 22px; }
+.help-section li + li { margin-top: 4px; }
+.help-section .table-wrap { margin: 4px 0 12px; box-shadow: none; }
+.help-section code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -779,6 +800,8 @@ body.presenting .budget-figures strong { font-size: 26px; }
   .timer-bar { max-width: 46vw; padding-left: 10px; }
   .timer-label { display: none; }
   .bell-panel { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
+  .help { grid-template-columns: 1fr; }
+  .help-toc { position: static; }
   .time-controls { gap: 10px; }
   .week-nav strong { width: 100%; margin: 4px 0 0; }
   .week-nav { flex-wrap: wrap; }

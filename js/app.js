@@ -12,6 +12,7 @@ import { renderCampaign } from './pages/campaign.js';
 import { renderSettings } from './pages/settings.js';
 import { renderProfile } from './pages/profile.js';
 import { renderDashboards } from './pages/dashboards.js';
+import { renderHelp } from './pages/help.js';
 
 const ALL = ['admin', 'member', 'director'];
 const WORK = ['admin', 'member'];
@@ -28,6 +29,7 @@ const ROUTES = [
   // Old address for the People page
   { path: /^\/people$/, roles: ['admin'], redirect: '/settings/people' },
   { path: /^\/profile$/, roles: ALL, nav: null, render: renderProfile },
+  { path: /^\/help$/, roles: ALL, nav: null, render: renderHelp },
 ];
 
 const NAV = [
@@ -138,6 +140,7 @@ function renderShell() {
             <span>${esc(ROLES[role])}</span>
           </div>
           <a class="menu-item" href="#/profile">Profile</a>
+          <a class="menu-item" href="#/help">Help</a>
           <button class="menu-item" type="button" data-sign-out>Sign out</button>
         </div>
       </div>
