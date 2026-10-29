@@ -17,8 +17,8 @@ const isoWeekday = iso => { const [y, m, d] = iso.split('-').map(Number); return
 // You change your own time off; the Admin changes anyone's
 const canChange = personId => isAdmin() || (personId === state.me.id && canEditWork());
 
-// manageHolidays (Admin, in Settings): adds a row per holiday calendar where
-// bank holidays are added, renamed and deleted
+// manageHolidays (Admin, in Settings): clicking a bank holiday on anyone's
+// row opens it to rename or delete
 export async function renderTeamCalendar(container, { onChanged, manageHolidays = false } = {}) {
   const from = monthFirst(view.month);
   const to = monthLast(view.month);
@@ -74,6 +74,10 @@ export async function renderTeamCalendar(container, { onChanged, manageHolidays 
     if (off) { kind = 'off'; label = `${person.name}, ${date}: ${reason}`; }
     else if (holiday) { kind = 'holiday'; label = `${person.name}, ${date}: ${holiday.name}`; }
     else if (!working) { kind = 'nonwork'; label = `${person.name}, ${date}: not working`; }
+    if (kind === 'holiday' && manageHolidays && isAdmin()) {
+      return `<button type="button" class="cal-cell cal-holiday ${day === today ? 'is-today' : ''}" title="${esc(label)} (click to rename or delete)"
+        aria-label="${esc(label)}" data-calendar="${esc(person.holiday_calendar)}" data-day="${day}" data-holiday="${esc(holiday.id)}"></button>`;
+    }
     const actionable = canChange(person.id) && (kind === 'off' || kind === 'free');
     const attrs = `class="cal-cell cal-${kind} ${day === today ? 'is-today' : ''}" title="${esc(label)}" aria-label="${esc(label)}"
       data-person="${esc(person.id)}" data-day="${day}" ${off ? `data-off="${esc(off.id)}"` : ''}`;
@@ -89,14 +93,6 @@ export async function renderTeamCalendar(container, { onChanged, manageHolidays 
           return `<span class="cal-day ${wd > 5 ? 'is-weekend' : ''} ${day === today ? 'is-today' : ''}">
             <span>${'MTWTFSS'[wd - 1]}</span><strong>${Number(day.slice(8))}</strong></span>`;
         }).join('')}
-        ${manageHolidays && isAdmin() ? ['Madrid', 'England'].map(calendar => `
-          <span class="cal-person cal-calendar-row">Bank holidays · ${calendar}</span>
-          ${days.map(day => {
-            const holiday = holidays.find(h => h.calendar === calendar && h.date === day);
-            const label = holiday ? `${calendar}, ${fmtDate(day)}: ${holiday.name}` : `${calendar}, ${fmtDate(day)}: add a bank holiday`;
-            return `<button type="button" class="cal-cell ${holiday ? 'cal-holiday' : 'cal-free cal-calendar-free'} ${day === today ? 'is-today' : ''}"
-              title="${esc(label)}" aria-label="${esc(label)}" data-calendar="${calendar}" data-day="${day}" ${holiday ? `data-holiday="${esc(holiday.id)}"` : ''}></button>`;
-          }).join('')}`).join('') : ''}
         ${people.map(person => `
           <span class="cal-person">${avatar(person, 22)}<span>${esc(person.id === state.me.id ? `${person.name} (you)` : person.name)}</span></span>
           ${days.map(day => cell(person, day)).join('')}`).join('')}
