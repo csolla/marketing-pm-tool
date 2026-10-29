@@ -9,7 +9,8 @@ import { renderMyTasks } from './pages/my-tasks.js';
 import { renderMyTime } from './pages/my-time.js';
 import { renderCampaigns } from './pages/campaigns.js';
 import { renderCampaign } from './pages/campaign.js';
-import { renderSettings } from './pages/settings.js';
+import { renderCapacityPage } from './pages/settings.js';
+import { renderDesignSystem } from './pages/design-system.js';
 import { renderProfile } from './pages/profile.js';
 import { renderDashboards } from './pages/dashboards.js';
 import { renderHelp } from './pages/help.js';
@@ -27,9 +28,13 @@ const ROUTES = [
   { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: renderMyTime },
   { path: /^\/dashboards$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el) },
   { path: /^\/dashboards\/present$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el, { present: true }) },
-  { path: /^\/settings\/(people|capacity|design-system)$/, roles: ['admin'], nav: 'settings', render: (el, tab) => renderSettings(el, tab) },
-  // Old address for the People page
-  { path: /^\/people$/, roles: ['admin'], redirect: '/settings/people' },
+  { path: /^\/capacity\/(people|rules|budgets|calendar)$/, roles: ['admin'], nav: 'capacity', render: (el, section) => renderCapacityPage(el, section) },
+  { path: /^\/capacity$/, roles: ['admin'], redirect: '/capacity/people' },
+  { path: /^\/design-system$/, roles: ['admin'], nav: null, render: renderDesignSystem },
+  // Old addresses
+  { path: /^\/(people|settings|settings\/people)$/, roles: ['admin'], redirect: '/capacity/people' },
+  { path: /^\/settings\/capacity$/, roles: ['admin'], redirect: '/capacity/rules' },
+  { path: /^\/settings\/design-system$/, roles: ['admin'], redirect: '/design-system' },
   { path: /^\/profile$/, roles: ALL, nav: null, render: renderProfile },
   { path: /^\/help$/, roles: ALL, nav: null, render: renderHelp },
 ];
@@ -39,7 +44,7 @@ const NAV = [
   { key: 'campaigns', label: 'Campaigns', href: '#/campaigns', roles: WORK },
   { key: 'my-time', label: 'My time', href: '#/my-time', roles: WORK },
   { key: 'dashboards', label: 'Dashboards', href: '#/dashboards', roles: ALL },
-  { key: 'settings', label: 'Settings', href: '#/settings/people', roles: ['admin'] },
+  { key: 'capacity', label: 'Capacity', href: '#/capacity/people', roles: ['admin'] },
 ];
 
 // Directors land on Dashboards; everyone else on My tasks
@@ -143,6 +148,7 @@ function renderShell() {
           </div>
           <a class="menu-item" href="#/profile">Profile</a>
           <a class="menu-item" href="#/help">Help</a>
+          ${role === 'admin' ? '<a class="menu-item" href="#/design-system">Design system</a>' : ''}
           <button class="menu-item" type="button" data-sign-out>Sign out</button>
         </div>
       </div>

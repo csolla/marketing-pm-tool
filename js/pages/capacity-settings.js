@@ -10,24 +10,18 @@ import { renderTeamCalendar } from './team-calendar.js';
 
 const CALENDARS = { Madrid: 'Madrid', England: 'England' };
 // Kept between visits
-const view = { section: null, budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
+const view = { budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
 
-const SECTIONS = { rules: 'Team rules', budgets: 'Monthly budgets', calendar: 'Holidays & time off' };
-
-// Settings > Capacity (Admin): team-wide rules, budgets, bank holidays and
-// everyone's time off. Each person's own capacity is set in Settings > People.
-export function renderCapacitySettings(el) {
-  if (!SECTIONS[view.section]) view.section = 'rules';
+// Capacity (Admin): team-wide rules, monthly budgets, and holidays & time
+// off. Each person's own capacity is set in Capacity > People.
+// section: 'rules', 'budgets' or 'calendar'
+export function renderCapacitySettings(el, section = 'rules') {
   el.innerHTML = `
-    <div class="view-switch sub-tabs" role="group" aria-label="Capacity sections">
-      ${Object.entries(SECTIONS).map(([key, label]) => `<button type="button" data-section="${key}">${label}</button>`).join('')}
-    </div>
-
     <section data-part="rules">
       <form class="card rules-card" data-rules novalidate>
         <h2>Team rules</h2>
         <p class="muted small">How capacity and budgets are worked out. Each person's hours per day, working days and
-          calendar are set in <a href="#/settings/people">Settings → People</a>.</p>
+          calendar are set in <a href="#/capacity/people">Capacity → People</a>.</p>
         <div class="rules-grid">
           <label class="rule">
             <span class="rule-label">Productive time</span>
@@ -79,12 +73,7 @@ export function renderCapacitySettings(el) {
       <div data-holidays></div>
     </section>`;
 
-  const show = key => {
-    view.section = key;
-    el.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === key)));
-    el.querySelectorAll('[data-part]').forEach(part => { part.hidden = part.dataset.part !== key; });
-    if (key === 'calendar') drawCalendar();
-  };
+  el.querySelectorAll('[data-part]').forEach(part => { part.hidden = part.dataset.part !== section; });
   const drawCalendar = el.redrawCalendar = () => renderTeamCalendar(el.querySelector('[data-calendar]'), {
     manageHolidays: true,
     onChanged: () => {
@@ -93,8 +82,7 @@ export function renderCapacitySettings(el) {
       drawBudgets(el);
     },
   });
-  el.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => show(b.dataset.section)));
-  show(view.section);
+  if (section === 'calendar') drawCalendar();
 
   setUpRules(el);
   drawBudgets(el);

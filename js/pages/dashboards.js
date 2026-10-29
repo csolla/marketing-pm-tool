@@ -326,7 +326,7 @@ function focusCampaigns(rows) {
 
 // Figures, shared by the page and the export ---------------------------------------
 
-// Automatic from productive capacity unless typed in Settings
+// Automatic from productive capacity unless typed in Capacity > Monthly budgets
 function budgetFor(data, month) {
   return monthBudget(month, {
     people: capacityPeople(state.people),
@@ -483,7 +483,7 @@ function drawCapacity(box, data) {
   const rows = capacityFigures(data);
   const container = box.querySelector('[data-capacity]');
   if (!rows.length) {
-    container.innerHTML = '<p class="muted">Nobody counts in capacity yet. Set it in Settings > Capacity.</p>';
+    container.innerHTML = '<p class="muted">Nobody counts in capacity yet. Set it in Capacity → People.</p>';
     return;
   }
   const pct = Number(data.settings.productive_pct ?? 80);

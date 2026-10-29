@@ -3,9 +3,9 @@ import { state, loadPeople } from '../state.js';
 import { ALLOWED_EMAIL_DOMAIN } from '../config.js';
 import { esc, options, avatar, toast, errorMessage, confirmDialog, formDialog, ROLES } from '../ui.js';
 
-// Settings > People (Admin): everything about each person in one place:
+// Capacity > People (Admin): everything about each person in one place:
 // role, capacity (hours per day, working days, calendar, counts in capacity)
-// and active/deactivated. Team-wide rules live in Settings > Capacity.
+// and active/deactivated. Team-wide rules live in the other Capacity sections.
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const CALENDARS = { Madrid: 'Madrid', England: 'England' };

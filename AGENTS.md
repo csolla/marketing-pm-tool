@@ -18,7 +18,7 @@ All five build milestones are complete (October 2026). The original PRD, milesto
 <!-- bm-design-system:start -->
 ## Design system
 
-The tool's look is defined once, adapted from the BM design system (the BM skill itself needs React + Tailwind, which this tool doesn't use). The live reference is **Settings → Design system** (`#/settings/design-system`, `js/pages/design-system.js`).
+The tool's look is defined once, adapted from the BM design system (the BM skill itself needs React + Tailwind, which this tool doesn't use). The live reference is **Design system** in the menu under your photo (Admin only; `#/design-system`, `js/pages/design-system.js`).
 
 - **Tokens only.** Colours, fonts, radius and shadows are CSS custom properties at the top of `css/styles.css`, with a dark-mode block. Never hard-code a colour in a page or component; add a token (with its dark value) if one is missing.
 - **Fonts:** Inter for headings (`--font-display`), DM Sans for everything else (`--font`), loaded in `index.html`.

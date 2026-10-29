@@ -221,15 +221,15 @@ const SECTIONS = [
     id: 'admin',
     title: 'Admin procedures (Carlota)',
     html: `
-      <p>Keep people, capacity and budgets up to date in <a href="#/settings/people">Settings</a> (tabs <strong>People</strong> and <strong>Capacity</strong>).</p>
+      <p>Keep people, capacity and budgets up to date in <a href="#/capacity/people">Capacity</a> (sections <strong>People</strong>, <strong>Team rules</strong>, <strong>Monthly budgets</strong> and <strong>Holidays &amp; time off</strong>). The <strong>Design system</strong> reference is in the menu under your photo.</p>
       <h3>When someone joins</h3>
       <ol>
-        <li>In Settings → People, click <strong>Invite</strong> and enter their DSD email (or ask them to sign in once). They appear as a Team member.</li>
+        <li>In Capacity → People, click <strong>Invite</strong> and enter their DSD email (or ask them to sign in once). They appear as a Team member.</li>
         <li>Click <strong>Edit</strong> on their row and set everything in one place: role, hours per day, working days, holiday calendar and whether they count in capacity. New team members still on the starting settings show <strong>Needs setup</strong>.</li>
         <li>For a director: choose <strong>Director</strong> and untick <strong>Counts in team capacity</strong>.</li>
       </ol>
       <h3>When someone leaves</h3>
-      <p>In Settings → People click <strong>Deactivate</strong>: they're signed out and can't sign in; their work is kept. <strong>Reactivate</strong> undoes it. Reassign their open tasks.</p>
+      <p>In Capacity → People click <strong>Deactivate</strong>: they're signed out and can't sign in; their work is kept. <strong>Reactivate</strong> undoes it. Reassign their open tasks.</p>
       <h3>Capacity settings</h3>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Setting</th><th>What it changes</th></tr></thead>
@@ -249,7 +249,7 @@ const SECTIONS = [
       </ol>
       <h3>Monthly routine</h3>
       <ol>
-        <li>Before the month: check holiday calendars, time off and the month's budgets in Settings → Capacity.</li>
+        <li>Before the month: check holiday calendars, time off and the month's budgets in Capacity.</li>
         <li>After the month: review Dashboards, then <strong>Download Excel</strong> or <strong>Present</strong> for the directors.</li>
         <li>Act on budget alerts in your bell during the month.</li>
       </ol>`,

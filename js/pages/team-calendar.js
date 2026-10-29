@@ -17,7 +17,7 @@ const isoWeekday = iso => { const [y, m, d] = iso.split('-').map(Number); return
 // You change your own time off; the Admin changes anyone's
 const canChange = personId => isAdmin() || (personId === state.me.id && canEditWork());
 
-// manageHolidays (Admin, in Settings): clicking a bank holiday on anyone's
+// manageHolidays (Admin, in Capacity): clicking a bank holiday on anyone's
 // row opens it to rename or delete
 export async function renderTeamCalendar(container, { onChanged, manageHolidays = false } = {}) {
   const from = monthFirst(view.month);

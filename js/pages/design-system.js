@@ -1,7 +1,7 @@
 import { state } from '../state.js';
 import { esc, avatar, buTag, statusPill, toast, formDialog, confirmDialog } from '../ui.js';
 
-// Settings > Design system: the reference for how the tool looks.
+// Design system (Admin, from the menu under your photo): the reference for how the tool looks.
 // Everything shown is the real thing (same classes and tokens the app uses),
 // so this page is also a quick visual check after any style change.
 
@@ -39,6 +39,7 @@ function section(id, title, description, uses, preview) {
 export function renderDesignSystem(el) {
   const sample = state.me;
   el.innerHTML = `
+    <div class="page-header"><h1>Design system</h1></div>
     <p class="muted tab-intro">How the tool looks, in one place: colours, type and every building block, shown live.
       Follow it when changing or adding anything, so the tool stays consistent. Adapted from the BM design system.</p>
 
