@@ -68,7 +68,7 @@ export async function renderTimeOffList(container, { personId = null } = {}) {
         <tbody>
           ${ranges.map(range => {
             const person = state.people.find(p => p.id === range.person_id);
-            const days = timeOffWorkdays(range, holidays, person?.holiday_calendar || 'Madrid');
+            const days = timeOffWorkdays(range, holidays, person);
             const past = range.end_date < todayIso();
             return `
               <tr data-id="${esc(range.id)}" class="${past ? 'is-past' : ''}">

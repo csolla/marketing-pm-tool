@@ -1,10 +1,17 @@
 import { supabase } from '../supabase.js';
 import { state, loadPeople } from '../state.js';
-import { loadBudgets, saveBudget, monthName, currentMonth } from '../capacity.js';
+import {
+  loadBudgets, saveBudget, monthName, currentMonth, monthBudget, capacityPeople, loadTeamSettings,
+  loadHolidays, loadTimeOff,
+} from '../capacity.js';
 import { esc, options, avatar, fmtDate, fmtHours, toast, errorMessage, confirmDialog, formDialog } from '../ui.js';
 import { openTimeOffForm, renderTimeOffList } from './time-off.js';
 
 const CALENDARS = { Madrid: 'Madrid', England: 'England' };
+const DAYS = [
+  { short: 'M', name: 'Monday' }, { short: 'T', name: 'Tuesday' }, { short: 'W', name: 'Wednesday' },
+  { short: 'T', name: 'Thursday' }, { short: 'F', name: 'Friday' }, { short: 'S', name: 'Saturday' }, { short: 'S', name: 'Sunday' },
+];
 // Kept between visits
 const view = { budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
 
@@ -15,6 +22,25 @@ export function renderCapacitySettings(el) {
       <h2>People's capacity</h2>
       <p class="muted small section-intro">Hours each person is available on a working day, whether they count towards team capacity, and which bank holidays apply to them.</p>
       <div data-people></div>
+    </section>
+    <section class="section">
+      <form class="card split-card" data-productive novalidate>
+        <div>
+          <h2>Productive time and budget split</h2>
+          <p class="muted small">Productive time is the share of working hours available for campaign work; the rest covers
+            internal meetings, admin and normal non-productive time. Monthly budgets are the team's productive hours,
+            after bank holidays and time off, divided by the budget split.</p>
+          <p class="small" data-standard-month></p>
+        </div>
+        <div class="split-inputs">
+          <label class="inline-field">Productive
+            <input type="number" name="productive" min="0" max="100" step="1" required aria-label="Productive percentage"> %</label>
+          <label class="inline-field">Education
+            <input type="number" name="budget_education" min="0" max="100" step="1" required aria-label="Education share of budgets"> %</label>
+          <span class="muted">Planning Center <strong data-budget-pc>…</strong></span>
+          <button class="btn btn-primary btn-small" type="submit">Save</button>
+        </div>
+      </form>
     </section>
     <section class="section">
       <form class="card split-card" data-split novalidate>
@@ -36,7 +62,8 @@ export function renderCapacitySettings(el) {
         <h2>Monthly budgets</h2>
         <div class="week-nav" data-budget-nav></div>
       </div>
-      <p class="muted small section-intro">Hours Marketing can give each business unit per month. Changes save as you type.</p>
+      <p class="muted small section-intro">Calculated automatically from the team's productive hours each month, so bank holidays
+        and time off lower them. Type a number to override a month; clear it to go back to automatic.</p>
       <div data-budgets></div>
     </section>
     <section class="section">
@@ -58,6 +85,7 @@ export function renderCapacitySettings(el) {
 
   drawPeople(el);
   setUpSplit(el);
+  setUpProductive(el);
   drawBudgets(el);
   drawHolidays(el);
   const timeOff = el.querySelector('[data-time-off]');
@@ -81,13 +109,17 @@ async function drawPeople(el) {
   box.innerHTML = `
     <div class="table-wrap">
       <table class="table">
-        <thead><tr><th>Person</th><th>Hours per day</th><th>Counts in capacity</th><th>Holiday calendar</th></tr></thead>
+        <thead><tr><th>Person</th><th>Hours per day</th><th>Working days</th><th>Counts in capacity</th><th>Holiday calendar</th></tr></thead>
         <tbody>
           ${people.map(p => `
             <tr data-id="${esc(p.id)}">
               <td><span class="person">${avatar(p, 28)}<span>${esc(p.name)}${p.role === 'director' ? ' <span class="muted small">(Director)</span>' : ''}</span></span></td>
               <td><input class="hours-input" type="number" data-field="hours_per_day" min="0" max="24" step="0.5"
                 value="${esc(p.hours_per_day)}" aria-label="Hours per day for ${esc(p.name)}"></td>
+              <td class="nowrap"><span class="day-picks" data-field="working_days" role="group" aria-label="Working days for ${esc(p.name)}">
+                ${DAYS.map((d, i) => `<label class="day-pick" title="${d.name}"><input type="checkbox" value="${i + 1}"
+                  ${(p.working_days || [1, 2, 3, 4, 5]).map(Number).includes(i + 1) ? 'checked' : ''}><span>${d.short}</span></label>`).join('')}
+              </span></td>
               <td><input type="checkbox" data-field="counts_in_capacity" ${p.counts_in_capacity ? 'checked' : ''}
                 aria-label="${esc(p.name)} counts in capacity"></td>
               <td><select data-field="holiday_calendar" aria-label="Holiday calendar for ${esc(p.name)}">${options(CALENDARS, p.holiday_calendar)}</select></td>
@@ -100,6 +132,14 @@ async function drawPeople(el) {
     const person = state.people.find(p => p.id === input.closest('tr').dataset.id);
     const field = input.dataset.field;
     let value = input.type === 'checkbox' ? input.checked : input.value;
+    if (field === 'working_days') {
+      value = [...input.querySelectorAll('input:checked')].map(c => Number(c.value));
+      if (!value.length) {
+        toast('Choose at least one working day.', 'error');
+        drawPeople(el);
+        return;
+      }
+    }
     if (field === 'hours_per_day') {
       value = Number(input.value);
       if (input.value === '' || !Number.isFinite(value) || value < 0 || value > 24) {
@@ -116,6 +156,8 @@ async function drawPeople(el) {
     }
     person[field] = value;
     toast(`Saved for ${person.name}`);
+    drawBudgets(el);
+    setUpProductive(el, { refreshOnly: true });
   }));
 }
 
@@ -162,42 +204,124 @@ function yearNav(container, year, onChange) {
     button.addEventListener('click', () => onChange(year + Number(button.dataset.shift))));
 }
 
+// A standard month: 52 weeks / 12, no holidays
+function standardMonthHours(people) {
+  return people.reduce((total, p) =>
+    total + Number(p.hours_per_day) * (p.working_days?.length || 5) * 52 / 12, 0);
+}
+
+async function setUpProductive(el, { refreshOnly = false } = {}) {
+  const form = el.querySelector('[data-productive]');
+  const productiveInput = form.elements.productive;
+  const eduInput = form.elements.budget_education;
+  let settings;
+  try {
+    settings = await loadTeamSettings();
+  } catch (error) {
+    form.querySelector('.split-inputs').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
+    return;
+  }
+  const showExample = () => {
+    const pct = Number(productiveInput.value);
+    const edu = Number(eduInput.value);
+    form.querySelector('[data-budget-pc]').textContent = eduInput.value !== '' && edu >= 0 && edu <= 100 ? `${100 - edu} %` : '–';
+    const hours = standardMonthHours(capacityPeople(state.people)) * pct / 100;
+    form.querySelector('[data-standard-month]').innerHTML = `In a standard month with no holidays, that's <strong>${fmtHours(Math.round(hours))}</strong>
+      of productive time: <strong>${fmtHours(Math.round(hours * edu / 100))}</strong> Education and
+      <strong>${fmtHours(Math.round(hours * (100 - edu) / 100))}</strong> Planning Center.`;
+  };
+  if (!refreshOnly) {
+    productiveInput.value = settings.productive_pct;
+    eduInput.value = settings.budget_split_education;
+    productiveInput.addEventListener('input', showExample);
+    eduInput.addEventListener('input', showExample);
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const values = { productive_pct: Number(productiveInput.value), budget_split_education: Number(eduInput.value) };
+      if (Object.values(values).some(v => !Number.isInteger(v) || v < 0 || v > 100)) {
+        toast('Use whole numbers from 0 to 100.', 'error');
+        return;
+      }
+      const { error } = await supabase.from('team_settings').update(values).eq('id', true);
+      if (error) {
+        toast(errorMessage(error), 'error');
+        return;
+      }
+      toast('Saved. Budgets are recalculated.');
+      drawBudgets(el);
+    });
+  }
+  showExample();
+}
+
 async function drawBudgets(el) {
   const year = view.budgetYear;
   yearNav(el.querySelector('[data-budget-nav]'), year, next => { view.budgetYear = next; drawBudgets(el); });
   const box = el.querySelector('[data-budgets]');
   const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
 
-  let budgets;
+  let overrides;
+  let settings;
+  let holidays;
+  let timeOff;
   try {
-    budgets = await loadBudgets(months[0], months[11]);
+    [overrides, settings, holidays, timeOff] = await Promise.all([
+      loadBudgets(months[0], months[11]),
+      loadTeamSettings(),
+      loadHolidays(`${year}-01-01`, `${year}-12-31`),
+      loadTimeOff({ from: `${year}-01-01`, to: `${year}-12-31` }),
+    ]);
   } catch (error) {
     box.innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
     return;
   }
-  const value = (month, field) => budgets[month] ? Number(budgets[month][field]) : '';
-  const total = field => months.reduce((sum, m) => sum + (Number(budgets[m]?.[field]) || 0), 0);
+  const people = capacityPeople(state.people);
+  const budgets = Object.fromEntries(months.map(m => [m,
+    monthBudget(m, { people, holidays, timeOff, settings, override: overrides[m] })]));
+  const round = n => Math.round(n);
+  const typed = (m, field) => (overrides[m]?.[field] != null ? Number(overrides[m][field]) : '');
+  const total = key => months.reduce((t, m) => t + budgets[m][key], 0);
+  const hasOverride = m => typed(m, 'education_hours') !== '' || typed(m, 'planning_center_hours') !== '';
 
   box.innerHTML = `
     <div class="table-wrap">
       <table class="table budget-table">
-        <thead><tr><th>Month</th><th class="num">Education hours</th><th class="num">Planning Center hours</th><th></th></tr></thead>
+        <thead><tr><th>Month</th><th class="num">Productive hours</th><th class="num">Education</th><th class="num">Planning Center</th><th></th></tr></thead>
         <tbody>
           ${months.map((month, i) => `
             <tr data-month="${month}" class="${month === currentMonth() ? 'is-current' : ''}">
               <td>${esc(monthName(month, 'long').split(' ')[0])}</td>
-              <td class="num"><input class="budget-input" type="number" min="0" step="1" data-field="education_hours"
-                value="${value(month, 'education_hours')}" aria-label="Education hours, ${esc(monthName(month))}"></td>
-              <td class="num"><input class="budget-input" type="number" min="0" step="1" data-field="planning_center_hours"
-                value="${value(month, 'planning_center_hours')}" aria-label="Planning Center hours, ${esc(monthName(month))}"></td>
-              <td class="row-actions">${i < 11 ? '<button class="btn btn-small btn-ghost" type="button" data-copy>Copy to next months</button>' : ''}</td>
+              <td class="num muted">${fmtHours(round(budgets[month].productiveHours))}</td>
+              ${['education_hours', 'planning_center_hours'].map(field => {
+                const key = field === 'education_hours' ? 'education' : 'planning_center';
+                const isAuto = typed(month, field) === '';
+                return `<td class="num"><input class="budget-input ${isAuto ? 'is-auto' : ''}" type="number" min="0" step="1" data-field="${field}"
+                  value="${typed(month, field)}" placeholder="${round(budgets[month].auto[key])}"
+                  title="${isAuto ? 'Automatic. Type a number to override.' : 'Typed by you. Clear it to go back to automatic.'}"
+                  aria-label="${key === 'education' ? 'Education' : 'Planning Center'} budget, ${esc(monthName(month))}"></td>`;
+              }).join('')}
+              <td class="row-actions nowrap">
+                ${hasOverride(month) ? '<button class="btn btn-small btn-ghost" type="button" data-reset>Back to automatic</button>' : '<span class="muted small">Automatic</span>'}
+                ${i < 11 && hasOverride(month) ? '<button class="btn btn-small btn-ghost" type="button" data-copy>Copy to next months</button>' : ''}
+              </td>
             </tr>`).join('')}
         </tbody>
         <tfoot>
-          <tr><th>Year total</th><th class="num">${fmtHours(total('education_hours'))}</th><th class="num">${fmtHours(total('planning_center_hours'))}</th><th></th></tr>
+          <tr><th>Year total</th><th class="num">${fmtHours(round(total('productiveHours')))}</th>
+            <th class="num">${fmtHours(round(total('education')))}</th><th class="num">${fmtHours(round(total('planning_center')))}</th><th></th></tr>
         </tfoot>
       </table>
     </div>`;
+
+  // Both empty = automatic, so the override row is removed
+  const store = async (month, values) => {
+    if (values.education_hours == null && values.planning_center_hours == null) {
+      const { error } = await supabase.from('monthly_budgets').delete().eq('month', `${month}-01`);
+      if (error) throw error;
+    } else {
+      await saveBudget(month, values);
+    }
+  };
 
   box.querySelectorAll('.budget-input').forEach(input => input.addEventListener('change', async () => {
     const row = input.closest('tr');
@@ -205,8 +329,8 @@ async function drawBudgets(el) {
     const values = {};
     for (const field of ['education_hours', 'planning_center_hours']) {
       const raw = row.querySelector(`[data-field="${field}"]`).value;
-      const number = raw === '' ? 0 : Number(raw);
-      if (!Number.isFinite(number) || number < 0) {
+      const number = raw === '' ? null : Number(raw);
+      if (number != null && (!Number.isFinite(number) || number < 0)) {
         toast('Budgets must be 0 or more hours.', 'error');
         drawBudgets(el);
         return;
@@ -214,8 +338,19 @@ async function drawBudgets(el) {
       values[field] = number;
     }
     try {
-      await saveBudget(month, values);
+      await store(month, values);
       toast(`Budget saved for ${monthName(month)}`);
+      drawBudgets(el);
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }));
+
+  box.querySelectorAll('[data-reset]').forEach(button => button.addEventListener('click', async () => {
+    const month = button.closest('tr').dataset.month;
+    try {
+      await store(month, { education_hours: null, planning_center_hours: null });
+      toast(`${monthName(month)} is automatic again`);
       drawBudgets(el);
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -225,18 +360,19 @@ async function drawBudgets(el) {
   box.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
     const month = button.closest('tr').dataset.month;
     const values = {
-      education_hours: Number(budgets[month]?.education_hours) || 0,
-      planning_center_hours: Number(budgets[month]?.planning_center_hours) || 0,
+      education_hours: typed(month, 'education_hours') === '' ? null : typed(month, 'education_hours'),
+      planning_center_hours: typed(month, 'planning_center_hours') === '' ? null : typed(month, 'planning_center_hours'),
     };
     const later = months.filter(m => m > month);
+    const describe = v => (v == null ? 'automatic' : fmtHours(v));
     const ok = await confirmDialog({
       title: 'Copy to next months?',
-      message: `${monthName(later[0])} to ${monthName(later[later.length - 1])} will get ${fmtHours(values.education_hours)} Education and ${fmtHours(values.planning_center_hours)} Planning Center, replacing what's there.`,
+      message: `${monthName(later[0])} to ${monthName(later[later.length - 1])} will get Education ${describe(values.education_hours)} and Planning Center ${describe(values.planning_center_hours)}, replacing what's there.`,
       confirmLabel: 'Copy',
     });
     if (!ok) return;
     try {
-      for (const m of later) await saveBudget(m, values);
+      for (const m of later) await store(m, values);
       toast(`Copied to ${later.length} month${later.length === 1 ? '' : 's'}`);
       drawBudgets(el);
     } catch (error) {

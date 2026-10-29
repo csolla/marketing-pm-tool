@@ -2,8 +2,8 @@ import { supabase } from '../supabase.js';
 import { state, canEditWork } from '../state.js';
 import { onLiveChange } from '../realtime.js';
 import {
-  currentMonth, shiftMonth, monthFirst, monthLast, monthName, periodFor, availability,
-  loadBudgets, loadHolidays, loadTimeOff,
+  currentMonth, shiftMonth, monthFirst, monthLast, monthName, periodFor, availability, productive,
+  monthBudget, capacityPeople, loadBudgets, loadHolidays, loadTimeOff, loadTeamSettings,
 } from '../capacity.js';
 import { budgetBars, budgetStatus, trendChart, trendTable } from '../charts.js';
 import { esc, buTag, avatar, fmtDate, fmtHours, toast, errorMessage, BUSINESS_UNITS } from '../ui.js';
@@ -92,7 +92,9 @@ async function loadData() {
     if (error) throw error;
     return data;
   };
-  const [budgets, monthly, entries, campaigns, totals, holidays, timeOff] = await Promise.all([
+  // Holidays and time off cover the whole trend, for each month's automatic budget
+  const windowFrom = monthFirst(trendFrom < period.months[0] ? trendFrom : period.months[0]);
+  const [budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings] = await Promise.all([
     loadBudgets(trendFrom < period.months[0] ? trendFrom : period.months[0], lastMonth),
     query(supabase.from('monthly_unit_hours').select('*').gte('month', monthFirst(trendFrom)).lte('month', monthFirst(lastMonth))),
     query(supabase.from('time_entries')
@@ -100,10 +102,11 @@ async function loadData() {
       .gte('entry_date', period.from).lte('entry_date', period.to)),
     query(supabase.from('campaigns').select('id, name, business_unit, status, start_date, end_date, planned_hours').order('name')),
     query(supabase.from('campaign_hours').select('*')),
-    loadHolidays(period.from, period.to),
-    loadTimeOff({ from: period.from, to: period.to }),
+    loadHolidays(windowFrom, period.to),
+    loadTimeOff({ from: windowFrom, to: period.to }),
+    loadTeamSettings(),
   ]);
-  return { period, trendFrom, upcomingTo, budgets, monthly, entries, campaigns, totals, holidays, timeOff };
+  return { period, trendFrom, upcomingTo, budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings };
 }
 
 function draw(el, data) {
@@ -135,7 +138,7 @@ function draw(el, data) {
     </section>
     <section class="card dash-section">
       <h2>Team capacity</h2>
-      <p class="muted small">Hours available after time off and bank holidays, against hours logged in the period.</p>
+      <p class="muted small">Productive hours available after time off and bank holidays, against campaign hours logged in the period.</p>
       <div data-capacity></div>
     </section>
     <section class="card dash-section">
@@ -172,13 +175,23 @@ function draw(el, data) {
 
 // Figures, shared by the page and the export ---------------------------------------
 
+// Automatic from productive capacity unless typed in Settings
+function budgetFor(data, month) {
+  return monthBudget(month, {
+    people: capacityPeople(state.people),
+    holidays: data.holidays,
+    timeOff: data.timeOff,
+    settings: data.settings,
+    override: data.budgets[month],
+  });
+}
+
 function budgetFigures(data) {
-  const months = data.period.months;
-  const has = months.some(m => data.budgets[m]);
-  const budget = field => (has ? months.reduce((total, m) => total + Number(data.budgets[m]?.[field] || 0), 0) : null);
+  const months = data.period.months.map(m => budgetFor(data, m));
+  const budget = key => months.reduce((total, b) => total + b[key], 0);
   return [
-    { key: 'education', label: 'Education', used: sum(data.entries, 'education_hours'), budget: budget('education_hours') },
-    { key: 'planning_center', label: 'Planning Center', used: sum(data.entries, 'planning_center_hours'), budget: budget('planning_center_hours') },
+    { key: 'education', label: 'Education', used: sum(data.entries, 'education_hours'), budget: budget('education') || null },
+    { key: 'planning_center', label: 'Planning Center', used: sum(data.entries, 'planning_center_hours'), budget: budget('planning_center') || null },
   ];
 }
 
@@ -187,7 +200,7 @@ function trendFigures(data) {
   for (let m = data.trendFrom; m <= data.period.months[data.period.months.length - 1]; m = shiftMonth(m, 1)) months.push(m);
   return months.map(month => {
     const row = data.monthly.find(r => r.month.slice(0, 7) === month) || {};
-    const budget = data.budgets[month];
+    const budget = budgetFor(data, month);
     const [y, mm] = month.split('-').map(Number);
     const short = new Date(y, mm - 1, 1).toLocaleDateString('en-GB', { month: 'short' });
     return {
@@ -197,8 +210,8 @@ function trendFigures(data) {
       edu: Number(row.education_hours || 0),
       pc: Number(row.planning_center_hours || 0),
       internal: Number(row.internal_hours || 0),
-      eduBudget: budget ? Number(budget.education_hours) : null,
-      pcBudget: budget ? Number(budget.planning_center_hours) : null,
+      eduBudget: Math.round(budget.education) || null,
+      pcBudget: Math.round(budget.planning_center) || null,
       highlight: data.period.months.includes(month),
     };
   });
@@ -232,15 +245,21 @@ function capacityFigures(data) {
     .map(person => {
       const mine = data.entries.filter(e => e.person_id === person.id);
       const available = availability(person, data.period.from, data.period.to, data.holidays, data.timeOff);
-      const logged = sum(mine, 'hours');
+      const productiveHours = productive(available.hours, data.settings);
+      const edu = sum(mine, 'education_hours');
+      const pc = sum(mine, 'planning_center_hours');
+      // Internal time is part of the non-productive share, so only campaign
+      // hours count against productive hours
       return {
         person,
         available,
-        logged,
-        edu: sum(mine, 'education_hours'),
-        pc: sum(mine, 'planning_center_hours'),
+        productiveHours,
+        logged: sum(mine, 'hours'),
+        campaign: edu + pc,
+        edu,
+        pc,
         internal: sum(mine, 'internal_hours'),
-        used: available.hours ? Math.round(logged / available.hours * 100) : null,
+        used: productiveHours ? Math.round((edu + pc) / productiveHours * 100) : null,
       };
     });
 }
@@ -324,12 +343,14 @@ function drawCapacity(box, data) {
     container.innerHTML = '<p class="muted">Nobody counts in capacity yet. Set it in Settings > Capacity.</p>';
     return;
   }
-  const totalAvailable = rows.reduce((t, r) => t + r.available.hours, 0);
-  const totalLogged = rows.reduce((t, r) => t + r.logged, 0);
+  const pct = Number(data.settings.productive_pct ?? 80);
+  const total = key => rows.reduce((t, r) => t + (key === 'available' ? r.available.hours : r[key]), 0);
+  const teamUsed = total('productiveHours') ? `${Math.round(total('campaign') / total('productiveHours') * 100)}%` : '—';
   container.innerHTML = `
     <div class="table-wrap">
       <table class="table capacity-table">
-        <thead><tr><th>Person</th><th class="num">Available</th><th class="num">Logged</th><th class="meter-col">Used</th>
+        <thead><tr><th>Person</th><th class="num">Working hours</th><th class="num">Productive (${pct}%)</th>
+          <th class="num">Campaign hours</th><th class="meter-col">Used</th>
           <th class="num">Education</th><th class="num">Planning Center</th><th class="num">Internal</th></tr></thead>
         <tbody>
           ${rows.map(r => {
@@ -340,8 +361,9 @@ function drawCapacity(box, data) {
             return `
               <tr>
                 <td><span class="person">${avatar(r.person, 24)}<span>${esc(r.person.name)}${note ? `<br><span class="muted small">${esc(note)}</span>` : ''}</span></span></td>
-                <td class="num">${fmtHours(r.available.hours)}</td>
-                <td class="num"><strong>${fmtHours(r.logged)}</strong></td>
+                <td class="num muted">${fmtHours(r.available.hours)}</td>
+                <td class="num">${fmtHours(r.productiveHours)}</td>
+                <td class="num"><strong>${fmtHours(r.campaign)}</strong></td>
                 <td class="meter-col">${r.used == null ? '<span class="muted">—</span>' : `
                   <span class="mini-meter" aria-hidden="true"><span style="width:${Math.min(100, r.used)}%"></span></span>
                   <span class="nowrap">${r.used}%</span>`}</td>
@@ -352,14 +374,14 @@ function drawCapacity(box, data) {
           }).join('')}
         </tbody>
         <tfoot>
-          <tr><th>Team</th><th class="num">${fmtHours(totalAvailable)}</th><th class="num">${fmtHours(totalLogged)}</th>
-            <th class="meter-col">${totalAvailable ? `${Math.round(totalLogged / totalAvailable * 100)}%` : '—'}</th>
-            <th class="num">${fmtHours(rows.reduce((t, r) => t + r.edu, 0))}</th>
-            <th class="num">${fmtHours(rows.reduce((t, r) => t + r.pc, 0))}</th>
-            <th class="num">${fmtHours(rows.reduce((t, r) => t + r.internal, 0))}</th></tr>
+          <tr><th>Team</th><th class="num">${fmtHours(total('available'))}</th><th class="num">${fmtHours(total('productiveHours'))}</th>
+            <th class="num">${fmtHours(total('campaign'))}</th><th class="meter-col">${teamUsed}</th>
+            <th class="num">${fmtHours(total('edu'))}</th><th class="num">${fmtHours(total('pc'))}</th><th class="num">${fmtHours(total('internal'))}</th></tr>
         </tfoot>
       </table>
-    </div>`;
+    </div>
+    <p class="muted small table-note">Working hours are after bank holidays and time off. Productive is ${pct}% of that; the rest covers
+      internal meetings, admin and non-productive time, so Internal hours aren't counted in "Used".</p>`;
 }
 
 function drawUpcoming(box, data) {
@@ -419,9 +441,10 @@ function exportSheets(data) {
     {
       name: 'Team capacity',
       rows: [
-        ['Person', 'Working days', 'Bank holidays', 'Days off', 'Hours available', 'Hours logged', '% used', 'Education', 'Planning Center', 'Internal'],
+        ['Person', 'Working days', 'Bank holidays', 'Days off', 'Working hours', `Productive hours (${data.settings.productive_pct ?? 80}%)`,
+          'Campaign hours', '% of productive used', 'Education', 'Planning Center', 'Internal'],
         ...capacityFigures(data).map(r => [r.person.name, r.available.workDays, r.available.holidayDays, r.available.offDays,
-          h(r.available.hours), h(r.logged), r.used ?? '', h(r.edu), h(r.pc), h(r.internal)]),
+          h(r.available.hours), h(r.productiveHours), h(r.campaign), r.used ?? '', h(r.edu), h(r.pc), h(r.internal)]),
       ],
     },
     {

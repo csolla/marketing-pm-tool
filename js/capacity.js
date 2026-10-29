@@ -48,16 +48,19 @@ function datesBetween(from, to) {
   return days;
 }
 
-const isWeekday = iso => {
+// 1 = Monday ... 7 = Sunday
+const isoWeekday = iso => {
   const [y, m, d] = iso.split('-').map(Number);
-  const weekday = new Date(y, m - 1, d).getDay();
-  return weekday !== 0 && weekday !== 6;
+  return new Date(y, m - 1, d).getDay() || 7;
 };
 
-// Hours someone can work between two dates: weekdays, minus their calendar's
-// bank holidays, minus their time off, times their hours per day
+const workingDaysOf = person => person.working_days?.length ? person.working_days.map(Number) : [1, 2, 3, 4, 5];
+
+// Hours someone can work between two dates: their working days, minus their
+// calendar's bank holidays, minus their time off, times their hours per day
 export function availability(person, from, to, holidays, timeOff) {
-  const weekdays = datesBetween(from, to).filter(isWeekday);
+  const days = workingDaysOf(person);
+  const weekdays = datesBetween(from, to).filter(d => days.includes(isoWeekday(d)));
   const holidayDates = new Set(holidays.filter(h => h.calendar === person.holiday_calendar).map(h => h.date));
   const offRanges = timeOff.filter(t => t.person_id === person.id);
   const isOff = day => offRanges.some(t => day >= t.start_date && day <= t.end_date);
@@ -79,10 +82,47 @@ export function availability(person, from, to, holidays, timeOff) {
   };
 }
 
-// Weekdays a time-off range actually takes (not counting bank holidays)
-export function timeOffWorkdays(range, holidays, calendar) {
-  const holidayDates = new Set(holidays.filter(h => h.calendar === calendar).map(h => h.date));
-  return datesBetween(range.start_date, range.end_date).filter(d => isWeekday(d) && !holidayDates.has(d)).length;
+// Working days a time-off range actually takes (not counting bank holidays)
+export function timeOffWorkdays(range, holidays, person) {
+  const days = workingDaysOf(person || {});
+  const holidayDates = new Set(holidays.filter(h => h.calendar === (person?.holiday_calendar || 'Madrid')).map(h => h.date));
+  return datesBetween(range.start_date, range.end_date)
+    .filter(d => days.includes(isoWeekday(d)) && !holidayDates.has(d)).length;
+}
+
+// Productive hours: available hours times the productive share (e.g. 80%)
+export const productive = (hours, settings) => hours * (Number(settings.productive_pct ?? 80) / 100);
+
+// A month's budget per unit. Automatic = the team's productive hours that
+// month (after bank holidays and time off) split by the budget split; a
+// typed value in monthly_budgets overrides either unit.
+// people: those counted in capacity; override: the monthly_budgets row or undefined
+export function monthBudget(month, { people, holidays, timeOff, settings, override }) {
+  const teamHours = people.reduce((total, person) =>
+    total + availability(person, monthFirst(month), monthLast(month), holidays, timeOff).hours, 0);
+  const productiveHours = productive(teamHours, settings);
+  const share = Number(settings.budget_split_education ?? 70) / 100;
+  const auto = { education: productiveHours * share, planning_center: productiveHours * (1 - share) };
+  const typed = field => (override && override[field] != null ? Number(override[field]) : null);
+  return {
+    productiveHours,
+    auto,
+    education: typed('education_hours') ?? auto.education,
+    planning_center: typed('planning_center_hours') ?? auto.planning_center,
+    educationIsAuto: typed('education_hours') == null,
+    planningCenterIsAuto: typed('planning_center_hours') == null,
+  };
+}
+
+// People whose hours make up team capacity
+export function capacityPeople(people) {
+  return people.filter(p => p.active && p.counts_in_capacity);
+}
+
+export async function loadTeamSettings() {
+  const { data, error } = await supabase.from('team_settings').select('*').maybeSingle();
+  if (error) throw error;
+  return data || { productive_pct: 80, budget_split_education: 70, shared_split_education: 70 };
 }
 
 // Data ----------------------------------------------------------------------
