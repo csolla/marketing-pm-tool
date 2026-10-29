@@ -910,6 +910,27 @@ th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { colo
 
 .no-task-hint { display: block; margin-top: 2px; color: var(--signal-ink); font-size: 12px; font-weight: 600; }
 
+/* My time (timesheet) ----------------------------------------------------------- */
+
+.time-week-nav { margin-top: 8px; }
+.time-week-nav .btn-small { margin-left: 0; }
+[data-panel="team"] .team-time { margin-top: 0; padding-top: 0; border-top: 0; }
+.time-controls .actions { flex-wrap: wrap; }
+.suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
+.suggestions:empty { display: none; }
+.suggestion {
+  border: 1px dashed var(--border); background: var(--surface); color: var(--text); border-radius: 999px;
+  padding: 3px 12px; font: inherit; font-size: 13px; cursor: pointer; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.suggestion:hover { border-color: var(--accent-bright); background: var(--accent-soft); }
+.row-campaign { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+.row-task { display: block; margin-left: 14px; color: var(--muted); font-size: 13px; }
+.day-note { display: block; font-size: 11px; font-weight: 600; color: var(--signal-ink); }
+.time-grid th.day-off .day-note { color: var(--muted); }
+.time-grid td.day-holiday, .time-grid td.day-leave, .time-grid td.day-off,
+.time-grid th.day-holiday, .time-grid th.day-leave, .time-grid th.day-off { background: var(--surface-2); }
+.time-grid tfoot th.is-under { color: var(--signal-ink); text-decoration: underline dotted; text-underline-offset: 3px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {

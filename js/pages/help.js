@@ -129,8 +129,9 @@ const SECTIONS = [
       <h3>Weekly grid</h3>
       <ol>
         <li>On My time, use ‹ and › to change week; <strong>This week</strong> jumps back.</li>
-        <li>Click <strong>Add row</strong> and pick the campaign and its task (or <strong>Internal</strong>, which has no task).</li>
-        <li>Type hours as <code>1.5</code> or <code>1:30</code> and press Enter. It saves straight away; clear a box to delete it.</li>
+        <li>Start the week with <strong>Copy last week's rows</strong> or a <strong>suggested row</strong> (your tasks in progress or due this week). For anything else, click <strong>Add row</strong> and pick the campaign and its task (or <strong>Internal</strong>, which has no task).</li>
+        <li>Type hours as <code>1.5</code> or <code>1:30</code>. It saves straight away; clear a box to delete it. Enter moves down, arrow keys move between days.</li>
+        <li>The <strong>Logged this week</strong> card shows your hours against your expected week. Bank holidays and days off are marked in the grid.</li>
       </ol>
       <h3>Timer</h3>
       <ol>
@@ -153,7 +154,7 @@ const SECTIONS = [
     html: `
       <p>Add holidays and absences as soon as they're agreed. Time off lowers the team's available hours and that month's budgets.</p>
       <ol>
-        <li>Go to <a href="#/my-time">My time</a> → <strong>My time off</strong> → <strong>Add time off</strong>.</li>
+        <li>Go to <a href="#/my-time">My time</a> → <strong>Time off</strong> tab → <strong>Add time off</strong>.</li>
         <li>Choose the first and last day (the same day for one day) and the reason: Holiday or Absence.</li>
         <li>Click <strong>Add time off</strong>. Weekends and bank holidays inside the dates aren't counted.</li>
       </ol>
@@ -240,7 +241,7 @@ const SECTIONS = [
       </table></div>
       <h3>Weekly routine</h3>
       <ol>
-        <li>Monday: check last week's hours in <strong>Team time</strong> at the bottom of My time; click a person to see their entries.</li>
+        <li>Monday: check last week's hours in <strong>My time → Team time</strong>; click a person to see their entries.</li>
         <li>Follow up on missing days; you can correct entries yourself if needed.</li>
         <li>Check Campaigns for anything over its planned hours.</li>
       </ol>
