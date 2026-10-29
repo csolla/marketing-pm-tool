@@ -1004,16 +1004,17 @@ body.presenting .kpi-label, body.presenting .kpi-sub, body.presenting .kpi-delta
   position: sticky; left: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding-right: 8px;
   background: var(--surface); font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cal-cell { height: 30px; border: 0; padding: 0; border-radius: 4px; background: var(--surface-2); font: inherit; }
+.cal-cell { height: 30px; border: 0; padding: 0; border-radius: 4px; font: inherit; }
+/* Working days white (outlined so they show on the white card), not working grey */
+.cal-free, .cal-key.cal-free { background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); }
 button.cal-cell { cursor: pointer; }
 button.cal-free:hover { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent-bright); }
 .cal-off, .cal-key.cal-off { background: var(--accent-bright); }
 button.cal-off:hover { box-shadow: inset 0 0 0 2px var(--text); }
 .cal-holiday, .cal-key.cal-holiday { background: repeating-linear-gradient(135deg, var(--signal) 0 3px, var(--signal-soft) 3px 7px); }
-.cal-nonwork, .cal-key.cal-nonwork { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+.cal-nonwork, .cal-key.cal-nonwork { background: var(--border); }
 .cal-cell.is-today { outline: 2px solid var(--accent-bright); outline-offset: 1px; }
-.cal-calendar-row { color: var(--signal-ink); font-size: 12.5px; }
-.cal-calendar-free { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+
 
 /* Phones ------------------------------------------------------------------- */
 

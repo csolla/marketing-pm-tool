@@ -33,6 +33,7 @@ export async function renderTeamCalendar(container, { onChanged, manageHolidays 
       <div class="cal-legend" aria-hidden="true">
         <span><span class="cal-key cal-off"></span>Time off</span>
         <span><span class="cal-key cal-holiday"></span>Bank holiday</span>
+        <span><span class="cal-key cal-free"></span>Working day</span>
         <span><span class="cal-key cal-nonwork"></span>Not working</span>
       </div>
     </div>
