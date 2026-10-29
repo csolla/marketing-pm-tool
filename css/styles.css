@@ -854,6 +854,29 @@ body.presenting .budget-figures strong { font-size: 26px; }
 .ds-card-sample { max-width: 280px; }
 .ds-gap { margin-top: 12px; }
 
+/* Campaigns list ----------------------------------------------------------------- */
+
+.campaign-tabs { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.campaign-tabs .tabs { border-bottom: 0; margin-bottom: 0; }
+.campaign-tabs .toggle { padding-bottom: 8px; }
+button.tab { background: none; border: 0; border-bottom: 2px solid transparent; font: inherit; cursor: pointer; }
+.tab-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 12px; text-align: center; }
+.tab.active .tab-count { background: var(--accent-soft); color: var(--accent); }
+.sort-btn { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; white-space: nowrap; }
+.sort-btn:hover { color: var(--text); }
+th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { color: var(--text); }
+.campaign-table tr.clickable { cursor: pointer; }
+.campaign-link { display: block; font-size: 15px; }
+.campaign-table .unit-line { margin-top: 2px; }
+.ended-flag { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; background: var(--signal-soft); color: var(--signal-ink); font-size: 12px; font-weight: 600; }
+.meter-head { min-width: 160px; }
+.meter-cell { white-space: nowrap; }
+.meter-cell .mini-meter { width: 70px; }
+.mini-meter.meter-good > span { background: var(--status-good); }
+.mini-meter.meter-warning > span { background: var(--status-warning); }
+.mini-meter.meter-critical > span { background: var(--status-critical); }
+.mini-meter.meter-progress > span { background: var(--accent-bright); }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -887,6 +910,18 @@ body.presenting .budget-figures strong { font-size: 26px; }
   .timer-label { display: none; }
   .bell-panel { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
   .help { grid-template-columns: 1fr; }
+  /* Campaigns: each row becomes a card */
+  .campaign-table thead { display: none; }
+  .campaign-table, .campaign-table tbody { display: block; }
+  .campaign-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .campaign-table td { display: block; padding: 0; border: 0; }
+  .campaign-table td[data-label="Campaign"] { grid-column: 1 / -1; }
+  .campaign-table td[data-label="Owner"], .campaign-table td[data-label="Dates"] { font-size: 13px; }
+  .campaign-table td[data-label="Hours"]::before, .campaign-table td[data-label="Tasks done"]::before {
+    content: attr(data-label); display: block; font-size: 12px; color: var(--muted); margin-bottom: 2px;
+  }
+  .campaign-table tbody tr:hover { background: transparent; }
+  .campaign-tabs .tab { padding: 8px 10px; }
   .help-toc { position: static; }
   .time-controls { gap: 10px; }
   .week-nav strong { width: 100%; margin: 4px 0 0; }
