@@ -223,9 +223,9 @@ const SECTIONS = [
       <p>Keep people, capacity and budgets up to date in <a href="#/settings/people">Settings</a> (tabs <strong>People</strong> and <strong>Capacity</strong>).</p>
       <h3>When someone joins</h3>
       <ol>
-        <li>Ask them to sign in once. They appear in Settings → People as a Team member.</li>
-        <li>For a director: set the role to <strong>Director</strong>, then in Capacity untick <strong>Counts in capacity</strong>.</li>
-        <li>For a team member: in Capacity set hours per day, working days and holiday calendar (Madrid or England).</li>
+        <li>In Settings → People, click <strong>Invite</strong> and enter their DSD email (or ask them to sign in once). They appear as a Team member.</li>
+        <li>Click <strong>Edit</strong> on their row and set everything in one place: role, hours per day, working days, holiday calendar and whether they count in capacity. New team members still on the starting settings show <strong>Needs setup</strong>.</li>
+        <li>For a director: choose <strong>Director</strong> and untick <strong>Counts in team capacity</strong>.</li>
       </ol>
       <h3>When someone leaves</h3>
       <p>In Settings → People click <strong>Deactivate</strong>: they're signed out and can't sign in; their work is kept. <strong>Reactivate</strong> undoes it. Reassign their open tasks.</p>
@@ -233,9 +233,9 @@ const SECTIONS = [
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Setting</th><th>What it changes</th></tr></thead>
         <tbody>
-          <tr><td>Productive time (80%)</td><td>Share of working hours available for campaign work</td></tr>
-          <tr><td>Budget split (70 / 30)</td><td>How productive hours divide into each unit's monthly budget</td></tr>
-          <tr><td>Shared split (70 / 30)</td><td>How hours on Shared campaigns are divided; changes apply only to hours logged afterwards</td></tr>
+          <tr><td>Team rules: productive time (80%)</td><td>Share of working hours available for campaign work</td></tr>
+          <tr><td>Team rules: budget split (70 / 30)</td><td>How productive hours divide into each unit's monthly budget</td></tr>
+          <tr><td>Team rules: Shared split (70 / 30)</td><td>How hours on Shared campaigns are divided; changes apply only to hours logged afterwards</td></tr>
           <tr><td>Monthly budgets</td><td>Automatic. Type a number to override a month; <strong>Back to automatic</strong> undoes it</td></tr>
           <tr><td>Bank holidays</td><td>Madrid and England, loaded to the end of 2027; add new years once published</td></tr>
         </tbody>

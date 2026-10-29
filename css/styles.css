@@ -967,6 +967,24 @@ body.presenting .kpi { padding: 24px; }
 body.presenting .kpi-value { font-size: 52px; }
 body.presenting .kpi-label, body.presenting .kpi-sub, body.presenting .kpi-delta { font-size: 16px; }
 
+/* Settings: people and team rules ------------------------------------------------- */
+
+.people-intro { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.people-intro p { max-width: 620px; }
+.role-guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin-bottom: 16px; padding: 12px 14px; background: var(--surface-2); border-radius: var(--radius); }
+.role-guide > div { display: flex; flex-direction: column; gap: 2px; }
+.setup-flag { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--signal-soft); color: var(--signal-ink); font-size: 12px; font-weight: 600; }
+.people-table .row-actions .btn-small:first-child { margin-left: 0; }
+.sub-tabs { margin-bottom: 16px; }
+.rules-card h2 { margin-bottom: 4px; }
+.rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 16px 0; }
+.rule { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); }
+.rule-label { font-weight: 600; color: var(--text); }
+.rule-input { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.rule-input input { width: 72px; }
+.rules-example { padding: 10px 14px; background: var(--accent-soft); border-radius: var(--radius); }
+.rules-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -1000,6 +1018,7 @@ body.presenting .kpi-label, body.presenting .kpi-sub, body.presenting .kpi-delta
   .timer-label { display: none; }
   .bell-panel { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
   .help { grid-template-columns: 1fr; }
+  .people-intro { flex-direction: column; align-items: stretch; }
   .slide-bar { left: 16px; right: 16px; transform: none; justify-content: space-between; gap: 8px; }
   .slide-dots { display: none; }
   .summary-top { grid-template-columns: 1fr; }

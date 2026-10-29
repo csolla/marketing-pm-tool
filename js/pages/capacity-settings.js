@@ -4,60 +4,54 @@ import {
   loadBudgets, saveBudget, monthName, currentMonth, monthBudget, capacityPeople, loadTeamSettings,
   loadHolidays, loadTimeOff,
 } from '../capacity.js';
-import { esc, options, avatar, fmtDate, fmtHours, toast, errorMessage, confirmDialog, formDialog } from '../ui.js';
+import { esc, options, fmtDate, fmtHours, toast, errorMessage, confirmDialog, formDialog } from '../ui.js';
 import { openTimeOffForm, renderTimeOffList } from './time-off.js';
 
 const CALENDARS = { Madrid: 'Madrid', England: 'England' };
-const DAYS = [
-  { short: 'M', name: 'Monday' }, { short: 'T', name: 'Tuesday' }, { short: 'W', name: 'Wednesday' },
-  { short: 'T', name: 'Thursday' }, { short: 'F', name: 'Friday' }, { short: 'S', name: 'Saturday' }, { short: 'S', name: 'Sunday' },
-];
 // Kept between visits
-const view = { budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
+const view = { section: null, budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
 
-// Settings > Capacity (Admin)
+const SECTIONS = { rules: 'Team rules', budgets: 'Monthly budgets', holidays: 'Bank holidays', 'time-off': 'Time off' };
+
+// Settings > Capacity (Admin): team-wide rules, budgets, bank holidays and
+// everyone's time off. Each person's own capacity is set in Settings > People.
 export function renderCapacitySettings(el) {
+  view.section ||= 'rules';
   el.innerHTML = `
-    <section class="section first">
-      <h2>People's capacity</h2>
-      <p class="muted small section-intro">Hours each person is available on a working day, whether they count towards team capacity, and which bank holidays apply to them.</p>
-      <div data-people></div>
-    </section>
-    <section class="section">
-      <form class="card split-card" data-productive novalidate>
-        <div>
-          <h2>Productive time and budget split</h2>
-          <p class="muted small">Productive time is the share of working hours available for campaign work; the rest covers
-            internal meetings, admin and normal non-productive time. Monthly budgets are the team's productive hours,
-            after bank holidays and time off, divided by the budget split.</p>
-          <p class="small" data-standard-month></p>
+    <div class="view-switch sub-tabs" role="group" aria-label="Capacity sections">
+      ${Object.entries(SECTIONS).map(([key, label]) => `<button type="button" data-section="${key}">${label}</button>`).join('')}
+    </div>
+
+    <section data-part="rules">
+      <form class="card rules-card" data-rules novalidate>
+        <h2>Team rules</h2>
+        <p class="muted small">How capacity and budgets are worked out. Each person's hours per day, working days and
+          calendar are set in <a href="#/settings/people">Settings → People</a>.</p>
+        <div class="rules-grid">
+          <label class="rule">
+            <span class="rule-label">Productive time</span>
+            <span class="rule-input"><input type="number" name="productive_pct" min="0" max="100" step="1" required> %</span>
+            <span class="muted small">Share of working hours available for campaign work. The rest covers internal meetings, admin and non-productive time.</span>
+          </label>
+          <label class="rule">
+            <span class="rule-label">Budget split</span>
+            <span class="rule-input"><input type="number" name="budget_split_education" min="0" max="100" step="1" required> % Education ·
+              <strong data-budget-pc>…</strong> Planning Center</span>
+            <span class="muted small">How productive hours divide into each unit's monthly budget.</span>
+          </label>
+          <label class="rule">
+            <span class="rule-label">Shared campaigns split</span>
+            <span class="rule-input"><input type="number" name="shared_split_education" min="0" max="100" step="1" required> % Education ·
+              <strong data-shared-pc>…</strong> Planning Center</span>
+            <span class="muted small">How hours on Shared campaigns are divided. Applies to hours logged from now on.</span>
+          </label>
         </div>
-        <div class="split-inputs">
-          <label class="inline-field">Productive
-            <input type="number" name="productive" min="0" max="100" step="1" required aria-label="Productive percentage"> %</label>
-          <label class="inline-field">Education
-            <input type="number" name="budget_education" min="0" max="100" step="1" required aria-label="Education share of budgets"> %</label>
-          <span class="muted">Planning Center <strong data-budget-pc>…</strong></span>
-          <button class="btn btn-primary btn-small" type="submit">Save</button>
-        </div>
+        <p class="rules-example" data-standard-month></p>
+        <div class="rules-actions"><button class="btn btn-primary" type="submit">Save rules</button></div>
       </form>
     </section>
-    <section class="section">
-      <form class="card split-card" data-split novalidate>
-        <div>
-          <h2>Shared campaigns split</h2>
-          <p class="muted small">How hours logged on Shared campaigns divide between the two business units.
-            Changes apply to hours logged from now on; past entries keep their split.</p>
-        </div>
-        <div class="split-inputs">
-          <label class="inline-field">Education
-            <input type="number" name="education" min="0" max="100" step="1" required aria-label="Education percentage"> %</label>
-          <span class="muted">Planning Center <strong data-pc>…</strong></span>
-          <button class="btn btn-primary btn-small" type="submit">Save</button>
-        </div>
-      </form>
-    </section>
-    <section class="section">
+
+    <section data-part="budgets" hidden>
       <div class="section-head">
         <h2>Monthly budgets</h2>
         <div class="week-nav" data-budget-nav></div>
@@ -66,7 +60,8 @@ export function renderCapacitySettings(el) {
         and time off lower them. Type a number to override a month; clear it to go back to automatic.</p>
       <div data-budgets></div>
     </section>
-    <section class="section">
+
+    <section data-part="holidays" hidden>
       <div class="section-head">
         <h2>Bank holidays</h2>
         <div class="view-switch" role="group" aria-label="Calendar" data-calendar-switch></div>
@@ -75,7 +70,8 @@ export function renderCapacitySettings(el) {
       </div>
       <div data-holidays></div>
     </section>
-    <section class="section">
+
+    <section data-part="time-off" hidden>
       <div class="section-head">
         <h2>Time off</h2>
         <button class="btn btn-small" type="button" data-add-time-off>Add time off</button>
@@ -83,9 +79,15 @@ export function renderCapacitySettings(el) {
       <div data-time-off></div>
     </section>`;
 
-  drawPeople(el);
-  setUpSplit(el);
-  setUpProductive(el);
+  const show = key => {
+    view.section = key;
+    el.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === key)));
+    el.querySelectorAll('[data-part]').forEach(part => { part.hidden = part.dataset.part !== key; });
+  };
+  el.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => show(b.dataset.section)));
+  show(view.section);
+
+  setUpRules(el);
   drawBudgets(el);
   drawHolidays(el);
   const timeOff = el.querySelector('[data-time-off]');
@@ -95,101 +97,66 @@ export function renderCapacitySettings(el) {
   el.querySelector('[data-add-holiday]').addEventListener('click', () => addHoliday(el));
 }
 
-// People's capacity -----------------------------------------------------------
+// Team rules: the three percentages, saved together after a check ------------
 
-async function drawPeople(el) {
-  const box = el.querySelector('[data-people]');
+async function setUpRules(el) {
+  const form = el.querySelector('[data-rules]');
+  let settings;
   try {
-    await loadPeople();
+    [settings] = await Promise.all([loadTeamSettings(), loadPeople()]);
   } catch (error) {
-    box.innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
+    form.querySelector('.rules-grid').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
     return;
   }
-  const people = state.people.filter(p => p.active).sort((a, b) => a.name.localeCompare(b.name));
-  box.innerHTML = `
-    <div class="table-wrap">
-      <table class="table">
-        <thead><tr><th>Person</th><th>Hours per day</th><th>Working days</th><th>Counts in capacity</th><th>Holiday calendar</th></tr></thead>
-        <tbody>
-          ${people.map(p => `
-            <tr data-id="${esc(p.id)}">
-              <td><span class="person">${avatar(p, 28)}<span>${esc(p.name)}${p.role === 'director' ? ' <span class="muted small">(Director)</span>' : ''}</span></span></td>
-              <td><input class="hours-input" type="number" data-field="hours_per_day" min="0" max="24" step="0.5"
-                value="${esc(p.hours_per_day)}" aria-label="Hours per day for ${esc(p.name)}"></td>
-              <td class="nowrap"><span class="day-picks" data-field="working_days" role="group" aria-label="Working days for ${esc(p.name)}">
-                ${DAYS.map((d, i) => `<label class="day-pick" title="${d.name}"><input type="checkbox" value="${i + 1}"
-                  ${(p.working_days || [1, 2, 3, 4, 5]).map(Number).includes(i + 1) ? 'checked' : ''}><span>${d.short}</span></label>`).join('')}
-              </span></td>
-              <td><input type="checkbox" data-field="counts_in_capacity" ${p.counts_in_capacity ? 'checked' : ''}
-                aria-label="${esc(p.name)} counts in capacity"></td>
-              <td><select data-field="holiday_calendar" aria-label="Holiday calendar for ${esc(p.name)}">${options(CALENDARS, p.holiday_calendar)}</select></td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+  const fields = ['productive_pct', 'budget_split_education', 'shared_split_education'];
+  fields.forEach(f => { form.elements[f].value = settings[f]; });
 
-  box.querySelectorAll('[data-field]').forEach(input => input.addEventListener('change', async () => {
-    const person = state.people.find(p => p.id === input.closest('tr').dataset.id);
-    const field = input.dataset.field;
-    let value = input.type === 'checkbox' ? input.checked : input.value;
-    if (field === 'working_days') {
-      value = [...input.querySelectorAll('input:checked')].map(c => Number(c.value));
-      if (!value.length) {
-        toast('Choose at least one working day.', 'error');
-        drawPeople(el);
-        return;
-      }
-    }
-    if (field === 'hours_per_day') {
-      value = Number(input.value);
-      if (input.value === '' || !Number.isFinite(value) || value < 0 || value > 24) {
-        toast('Hours per day must be between 0 and 24.', 'error');
-        input.value = person.hours_per_day;
-        return;
-      }
-    }
-    const { error } = await supabase.from('people').update({ [field]: value }).eq('id', person.id);
-    if (error) {
-      toast(errorMessage(error), 'error');
-      drawPeople(el);
-      return;
-    }
-    person[field] = value;
-    toast(`Saved for ${person.name}`);
-    drawBudgets(el);
-    setUpProductive(el, { refreshOnly: true });
-  }));
-}
-
-// Shared split ------------------------------------------------------------------
-
-async function setUpSplit(el) {
-  const form = el.querySelector('[data-split]');
-  const input = form.elements.education;
-  const showPc = () => {
-    const edu = Number(input.value);
-    form.querySelector('[data-pc]').textContent = input.value !== '' && edu >= 0 && edu <= 100 ? `${100 - edu} %` : '–';
+  const showExample = () => {
+    const v = name => Number(form.elements[name].value);
+    const pc = name => (form.elements[name].value !== '' && v(name) >= 0 && v(name) <= 100 ? `${100 - v(name)} %` : '–');
+    form.querySelector('[data-budget-pc]').textContent = pc('budget_split_education');
+    form.querySelector('[data-shared-pc]').textContent = pc('shared_split_education');
+    const hours = standardMonthHours(capacityPeople(state.people)) * v('productive_pct') / 100;
+    form.querySelector('[data-standard-month]').innerHTML = `In a standard month with no holidays, that's <strong>${fmtHours(Math.round(hours))}</strong>
+      of productive time: <strong>${fmtHours(Math.round(hours * v('budget_split_education') / 100))}</strong> Education and
+      <strong>${fmtHours(Math.round(hours * (100 - v('budget_split_education')) / 100))}</strong> Planning Center.`;
   };
-  input.addEventListener('input', showPc);
-
-  const { data, error } = await supabase.from('team_settings').select('shared_split_education').maybeSingle();
-  if (error || !data) {
-    form.querySelector('.split-inputs').innerHTML = `<p class="form-error">${esc(errorMessage(error || 'Settings not found'))}</p>`;
-    return;
-  }
-  input.value = data.shared_split_education;
-  showPc();
+  fields.forEach(f => form.elements[f].addEventListener('input', showExample));
+  showExample();
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    const edu = Number(input.value);
-    if (input.value === '' || !Number.isInteger(edu) || edu < 0 || edu > 100) {
-      toast('Use a whole number from 0 to 100.', 'error');
+    const values = Object.fromEntries(fields.map(f => [f, Number(form.elements[f].value)]));
+    if (Object.values(values).some(v => !Number.isInteger(v) || v < 0 || v > 100)) {
+      toast('Use whole numbers from 0 to 100.', 'error');
       return;
     }
-    const { error: saveError } = await supabase.from('team_settings').update({ shared_split_education: edu }).eq('id', true);
-    if (saveError) toast(errorMessage(saveError), 'error');
-    else toast(`Shared split is now ${edu} / ${100 - edu}`);
+    const changed = fields.filter(f => values[f] !== Number(settings[f]));
+    if (!changed.length) {
+      toast('Nothing changed.');
+      return;
+    }
+    const effects = [];
+    if (changed.includes('productive_pct') || changed.includes('budget_split_education')) {
+      effects.push('every automatic monthly budget, past and future, is recalculated');
+    }
+    if (changed.includes('shared_split_education')) {
+      effects.push(`hours logged on Shared campaigns from now on split ${values.shared_split_education} / ${100 - values.shared_split_education} (past entries keep their split)`);
+    }
+    const ok = await confirmDialog({
+      title: 'Save the team rules?',
+      message: `If you save: ${effects.join('; and ')}.`,
+      confirmLabel: 'Save rules',
+    });
+    if (!ok) return;
+    const { error } = await supabase.from('team_settings').update(values).eq('id', true);
+    if (error) {
+      toast(errorMessage(error), 'error');
+      return;
+    }
+    Object.assign(settings, values);
+    toast('Team rules saved');
+    drawBudgets(el);
   });
 }
 
@@ -208,50 +175,6 @@ function yearNav(container, year, onChange) {
 function standardMonthHours(people) {
   return people.reduce((total, p) =>
     total + Number(p.hours_per_day) * (p.working_days?.length || 5) * 52 / 12, 0);
-}
-
-async function setUpProductive(el, { refreshOnly = false } = {}) {
-  const form = el.querySelector('[data-productive]');
-  const productiveInput = form.elements.productive;
-  const eduInput = form.elements.budget_education;
-  let settings;
-  try {
-    settings = await loadTeamSettings();
-  } catch (error) {
-    form.querySelector('.split-inputs').innerHTML = `<p class="form-error">${esc(errorMessage(error))}</p>`;
-    return;
-  }
-  const showExample = () => {
-    const pct = Number(productiveInput.value);
-    const edu = Number(eduInput.value);
-    form.querySelector('[data-budget-pc]').textContent = eduInput.value !== '' && edu >= 0 && edu <= 100 ? `${100 - edu} %` : '–';
-    const hours = standardMonthHours(capacityPeople(state.people)) * pct / 100;
-    form.querySelector('[data-standard-month]').innerHTML = `In a standard month with no holidays, that's <strong>${fmtHours(Math.round(hours))}</strong>
-      of productive time: <strong>${fmtHours(Math.round(hours * edu / 100))}</strong> Education and
-      <strong>${fmtHours(Math.round(hours * (100 - edu) / 100))}</strong> Planning Center.`;
-  };
-  if (!refreshOnly) {
-    productiveInput.value = settings.productive_pct;
-    eduInput.value = settings.budget_split_education;
-    productiveInput.addEventListener('input', showExample);
-    eduInput.addEventListener('input', showExample);
-    form.addEventListener('submit', async event => {
-      event.preventDefault();
-      const values = { productive_pct: Number(productiveInput.value), budget_split_education: Number(eduInput.value) };
-      if (Object.values(values).some(v => !Number.isInteger(v) || v < 0 || v > 100)) {
-        toast('Use whole numbers from 0 to 100.', 'error');
-        return;
-      }
-      const { error } = await supabase.from('team_settings').update(values).eq('id', true);
-      if (error) {
-        toast(errorMessage(error), 'error');
-        return;
-      }
-      toast('Saved. Budgets are recalculated.');
-      drawBudgets(el);
-    });
-  }
-  showExample();
 }
 
 async function drawBudgets(el) {
