@@ -51,7 +51,7 @@
   /* Sign-in welcome panel: the same in light and dark mode */
   --welcome-bg: linear-gradient(150deg, #0e7490 0%, #155e75 55%, #0f172a 100%);
   --welcome-ink: #ffffff;
-  --welcome-soft: #bae6fd;
+  --welcome-soft: #e0f2fe;
   --welcome-line: rgba(255, 255, 255, 0.35);
 
   --radius: 10px;
