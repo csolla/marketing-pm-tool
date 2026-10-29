@@ -11,6 +11,7 @@ import { esc, options, buTag, fmtHours, toast, errorMessage, confirmDialog, BUSI
 import { openTimeEntryForm, pickCampaignTask } from './time-entry-form.js';
 import { renderTeamTime } from './team-time.js';
 import { openTimeOffForm, renderTimeOffList } from './time-off.js';
+import { renderTeamCalendar } from './team-calendar.js';
 
 const WEEKEND_KEY = 'my-time-show-weekend';
 // Kept between visits
@@ -106,6 +107,7 @@ export async function renderMyTime(el) {
     </div>
 
     <div data-panel="off" hidden>
+      <section class="card team-calendar" data-calendar></section>
       <div class="section-head">
         <h2 data-time-off-title>My time off</h2>
         <span data-time-off-action></span>
@@ -142,6 +144,17 @@ function showTab(page, tab) {
   });
   page.el.querySelectorAll('[data-panel]').forEach(panel => { panel.hidden = panel.dataset.panel !== tab; });
   if (tab === 'team') drawTeam(page);
+  if (tab === 'off') drawCalendar(page);
+}
+
+// Who's off when, for the whole team; changes refresh the list and the week
+function drawCalendar(page) {
+  renderTeamCalendar(page.el.querySelector('[data-calendar]'), {
+    onChanged: () => {
+      renderTimeOffList(page.el.querySelector('[data-time-off]'), { personId: page.personId });
+      load(page);
+    },
+  });
 }
 
 function showPerson(page, personId) {
@@ -311,7 +324,14 @@ function drawTimeOff(page) {
   const action = el.querySelector('[data-time-off-action]');
   action.innerHTML = canEdit(page) ? '<button class="btn btn-small" type="button">Add time off</button>' : '';
   action.querySelector('button')?.addEventListener('click', () =>
-    openTimeOffForm({ personId: page.personId, onSaved: () => { renderTimeOffList(list, { personId: page.personId }); load(page); } }));
+    openTimeOffForm({
+      personId: page.personId,
+      onSaved: () => {
+        renderTimeOffList(list, { personId: page.personId });
+        load(page);
+        if (view.tab === 'off') drawCalendar(page);
+      },
+    }));
   renderTimeOffList(list, { personId: page.personId });
 }
 

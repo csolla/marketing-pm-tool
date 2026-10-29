@@ -985,6 +985,34 @@ body.presenting .kpi-label, body.presenting .kpi-sub, body.presenting .kpi-delta
 .rules-example { padding: 10px 14px; background: var(--accent-soft); border-radius: var(--radius); }
 .rules-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
 
+/* Team calendar (time off) -------------------------------------------------------- */
+
+.team-calendar { margin-bottom: 24px; }
+.cal-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+.cal-head .btn-small { margin-left: 0; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; }
+.cal-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-key { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+.cal-scroll { overflow-x: auto; }
+.cal-grid { display: grid; gap: 2px; min-width: 720px; align-items: stretch; }
+.cal-corner { position: sticky; left: 0; background: var(--surface); }
+.cal-day { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); padding-bottom: 4px; }
+.cal-day strong { font-size: 12.5px; color: var(--text); font-weight: 600; }
+.cal-day.is-weekend strong { color: var(--muted); }
+.cal-day.is-today strong { color: var(--accent-text); background: var(--accent); border-radius: 999px; padding: 0 6px; }
+.cal-person {
+  position: sticky; left: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding-right: 8px;
+  background: var(--surface); font-size: 13.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cal-cell { height: 30px; border: 0; padding: 0; border-radius: 4px; background: var(--surface-2); font: inherit; }
+button.cal-cell { cursor: pointer; }
+button.cal-free:hover { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent-bright); }
+.cal-off, .cal-key.cal-off { background: var(--accent-bright); }
+button.cal-off:hover { box-shadow: inset 0 0 0 2px var(--text); }
+.cal-holiday, .cal-key.cal-holiday { background: repeating-linear-gradient(135deg, var(--signal) 0 3px, var(--signal-soft) 3px 7px); }
+.cal-nonwork, .cal-key.cal-nonwork { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+.cal-cell.is-today { outline: 2px solid var(--accent-bright); outline-offset: 1px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {

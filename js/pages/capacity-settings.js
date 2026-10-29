@@ -6,6 +6,7 @@ import {
 } from '../capacity.js';
 import { esc, options, fmtDate, fmtHours, toast, errorMessage, confirmDialog, formDialog } from '../ui.js';
 import { openTimeOffForm, renderTimeOffList } from './time-off.js';
+import { renderTeamCalendar } from './team-calendar.js';
 
 const CALENDARS = { Madrid: 'Madrid', England: 'England' };
 // Kept between visits
@@ -72,6 +73,7 @@ export function renderCapacitySettings(el) {
     </section>
 
     <section data-part="time-off" hidden>
+      <section class="card team-calendar" data-calendar></section>
       <div class="section-head">
         <h2>Time off</h2>
         <button class="btn btn-small" type="button" data-add-time-off>Add time off</button>
@@ -83,7 +85,11 @@ export function renderCapacitySettings(el) {
     view.section = key;
     el.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === key)));
     el.querySelectorAll('[data-part]').forEach(part => { part.hidden = part.dataset.part !== key; });
+    if (key === 'time-off') drawCalendar();
   };
+  const drawCalendar = () => renderTeamCalendar(el.querySelector('[data-calendar]'), {
+    onChanged: () => renderTimeOffList(el.querySelector('[data-time-off]')),
+  });
   el.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => show(b.dataset.section)));
   show(view.section);
 
@@ -93,7 +99,7 @@ export function renderCapacitySettings(el) {
   const timeOff = el.querySelector('[data-time-off]');
   renderTimeOffList(timeOff);
   el.querySelector('[data-add-time-off]').addEventListener('click', () =>
-    openTimeOffForm({ onSaved: () => renderTimeOffList(timeOff) }));
+    openTimeOffForm({ onSaved: () => { renderTimeOffList(timeOff); drawCalendar(); } }));
   el.querySelector('[data-add-holiday]').addEventListener('click', () => addHoliday(el));
 }
 

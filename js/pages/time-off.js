@@ -7,7 +7,8 @@ import { esc, options, avatar, fmtDate, formDialog, confirmDialog, toast, errorM
 const REASONS = { Holiday: 'Holiday', Absence: 'Absence' };
 
 // Add days off. The Admin can pick anyone; others add their own.
-export function openTimeOffForm({ personId = state.me.id, onSaved } = {}) {
+// date: a day to start with (e.g. clicked on the team calendar)
+export function openTimeOffForm({ personId = state.me.id, date = todayIso(), onSaved } = {}) {
   const people = state.people.filter(p => p.active && p.role !== 'director');
   formDialog({
     title: 'Add time off',
@@ -16,8 +17,8 @@ export function openTimeOffForm({ personId = state.me.id, onSaved } = {}) {
         <label class="field"><span>Person</span>
           <select name="person_id">${options(Object.fromEntries(people.map(p => [p.id, p.name])), personId)}</select></label>` : ''}
       <div class="field-row">
-        <label class="field"><span>From</span><input type="date" name="start_date" required value="${todayIso()}"></label>
-        <label class="field"><span>To (same day for one day)</span><input type="date" name="end_date" required value="${todayIso()}"></label>
+        <label class="field"><span>From</span><input type="date" name="start_date" required value="${date}"></label>
+        <label class="field"><span>To (same day for one day)</span><input type="date" name="end_date" required value="${date}"></label>
       </div>
       <label class="field"><span>Reason</span><select name="reason">${options(REASONS, 'Holiday')}</select></label>
       <p class="muted small">Full days only. Weekends and bank holidays inside the dates aren't counted.</p>`,

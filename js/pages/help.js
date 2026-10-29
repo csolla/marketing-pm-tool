@@ -154,12 +154,13 @@ const SECTIONS = [
     html: `
       <p>Add holidays and absences as soon as they're agreed. Time off lowers the team's available hours and that month's budgets.</p>
       <ol>
-        <li>Go to <a href="#/my-time">My time</a> → <strong>Time off</strong> tab → <strong>Add time off</strong>.</li>
+        <li>Go to <a href="#/my-time">My time</a> → <strong>Time off</strong> tab. The <strong>team calendar</strong> shows who's off when, with each person's bank holidays and non-working days. Click a free day on your row (or use <strong>Add time off</strong>).</li>
         <li>Choose the first and last day (the same day for one day) and the reason: Holiday or Absence.</li>
         <li>Click <strong>Add time off</strong>. Weekends and bank holidays inside the dates aren't counted.</li>
       </ol>
       <ul>
-        <li>Full days only. To cancel, click <strong>Delete</strong> next to it.</li>
+        <li>Full days only. To cancel, click the day off on the calendar, or <strong>Delete</strong> in the list.</li>
+        <li>Others see your time off as "Off"; only you and the Admin see whether it's a holiday or an absence.</li>
         <li>Bank holidays for Madrid and England are already in the tool; don't add them as time off.</li>
         <li>Time off still needs approval in Personio as usual; the tool doesn't approve anything.</li>
       </ul>`,
