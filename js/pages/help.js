@@ -117,7 +117,7 @@ const SECTIONS = [
     id: 'time',
     title: 'Logging your time',
     html: `
-      <p>Log every working hour, including meetings and admin, so the dashboards show where Marketing's time really goes.</p>
+      <p>Log every working hour, including meetings and admin, so the dashboards show where Marketing's time really goes. Campaign time always goes on a task (or subtask); only Internal time has no task.</p>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Way</th><th>Where</th><th>Best for</th></tr></thead>
         <tbody>
@@ -129,7 +129,7 @@ const SECTIONS = [
       <h3>Weekly grid</h3>
       <ol>
         <li>On My time, use ‹ and › to change week; <strong>This week</strong> jumps back.</li>
-        <li>Click <strong>Add row</strong> and pick the campaign (or <strong>Internal</strong>) and, optionally, a task.</li>
+        <li>Click <strong>Add row</strong> and pick the campaign and its task (or <strong>Internal</strong>, which has no task).</li>
         <li>Type hours as <code>1.5</code> or <code>1:30</code> and press Enter. It saves straight away; clear a box to delete it.</li>
       </ol>
       <h3>Timer</h3>
@@ -277,7 +277,7 @@ const SECTIONS = [
       </table></div>
       <h3>FAQ</h3>
       <p><strong>Can I see my teammates' hours?</strong> Yes, with the Person picker on My time. Only the Admin can change someone else's entries.</p>
-      <p><strong>Do I need to log hours on a specific task?</strong> No. A campaign is enough; add a task when it helps.</p>
+      <p><strong>Do I need to log hours on a specific task?</strong> Yes. Campaign time always goes on a task or subtask, so every hour can be traced. If no task fits, add one on the campaign page first. Only Internal time has no task.</p>
       <p><strong>What if I worked on something for both units?</strong> Use a Shared campaign: your one entry is split 70 / 30 automatically.</p>
       <p><strong>Does the tool replace Personio?</strong> No. Get holidays approved in Personio as usual, then add them here.</p>`,
   },

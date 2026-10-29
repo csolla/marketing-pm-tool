@@ -244,6 +244,7 @@ function drawGrid(page) {
               <td class="row-label">
                 ${row.campaign ? buTag(row.campaign.business_unit) : '<span class="tag tag-internal">Internal</span>'}
                 <span>${esc(row.label)}</span>
+                ${row.campaign_id && !row.task_id ? '<span class="no-task-hint">No task: use Edit below to choose one</span>' : ''}
               </td>
               ${days.map(day => {
                 const entries = cellEntries(row.key, day);
@@ -251,7 +252,7 @@ function drawGrid(page) {
                 const { weekday } = dayParts(day);
                 const multi = entries.length > 1;
                 return `<td class="cell"><input class="cell-input ${multi ? 'is-multi' : ''}" data-cell="${esc(row.key)}@${day}" inputmode="decimal"
-                  value="${esc(hoursText(minutes))}" aria-label="${esc(row.label)}, ${esc(weekday)}" ${editable ? '' : 'disabled'}
+                  value="${esc(hoursText(minutes))}" aria-label="${esc(row.label)}, ${esc(weekday)}" ${editable && !(row.campaign_id && !row.task_id) ? '' : 'disabled'}
                   ${multi ? `title="${entries.length} entries. Typing a new total merges them into one."` : ''}></td>`;
               }).join('')}
               <td class="num total">${fmtHours(sumMinutes(page.entries.filter(e => rowKey(e) === row.key)) / 60)}</td>

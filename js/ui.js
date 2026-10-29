@@ -133,6 +133,9 @@ export function toast(message, type = 'success', { action } = {}) {
 export function errorMessage(error) {
   const msg = error?.message || String(error);
   if (/row-level security|permission denied/i.test(msg)) return "You don't have permission to do that.";
+  if (/campaign_time_needs_task/.test(msg)) {
+    return 'Campaign time must be on a task. Use Edit in the entries list to choose one.';
+  }
   if (/foreign key/i.test(msg) && /time_entries/.test(msg)) {
     return "This has hours logged, so it can't be deleted. Set it to Done instead.";
   }

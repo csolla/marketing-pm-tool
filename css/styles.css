@@ -908,6 +908,8 @@ th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { colo
 .column-more { margin-top: 6px; }
 .avatar-empty { display: inline-block; border-radius: 50%; border: 1.5px dashed var(--muted); opacity: 0.7; vertical-align: middle; }
 
+.no-task-hint { display: block; margin-top: 2px; color: var(--signal-ink); font-size: 12px; font-weight: 600; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
