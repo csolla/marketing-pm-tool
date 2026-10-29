@@ -60,6 +60,10 @@ export function closeTaskPanel() {
   if (!current) return;
   const { panel, backdrop } = current;
   current = null;
+  // Opened from a task link: go back to the campaign's own address (no reload)
+  if (/^#\/campaigns\/[0-9a-f-]{36}\/tasks\//.test(window.location.hash)) {
+    history.replaceState(null, '', window.location.hash.replace(/\/tasks\/[0-9a-f-]{36}$/, ''));
+  }
   panel.classList.remove('open');
   backdrop.remove();
   setTimeout(() => panel.remove(), 200);
@@ -94,6 +98,7 @@ function render() {
         ${buTag(task.campaign.business_unit)} <span>${esc(task.campaign.name)}</span>
       </a>
       <div class="panel-actions">
+        <button class="btn btn-small btn-ghost" type="button" data-copy-link title="Copy a link to this task">Copy link</button>
         <button class="btn btn-small btn-danger-outline" type="button" data-delete>Delete</button>
         <button class="icon-btn" type="button" data-close aria-label="Close">×</button>
       </div>
@@ -142,6 +147,7 @@ function render() {
 
   panel.querySelector('[data-close]').addEventListener('click', closeTaskPanel);
   panel.querySelector('[data-delete]').addEventListener('click', removeTask);
+  panel.querySelector('[data-copy-link]').addEventListener('click', () => copyTaskLink(task));
   panel.querySelectorAll('[data-field]').forEach(input => input.addEventListener('change', () => saveField(input)));
   panel.querySelector('[data-add-subtask]').addEventListener('submit', addSubtask);
   panel.querySelector('[data-start-timer]').addEventListener('click', () =>
@@ -187,6 +193,17 @@ function renderSubtasks() {
       <button class="icon-btn subtask-timer" type="button" data-sub-timer aria-label="Start timer on this subtask" title="Start timer">▶</button>
       <button class="icon-btn" type="button" data-remove aria-label="Remove subtask">×</button>
     </li>`).join('');
+}
+
+// A link that opens the campaign with this task open
+async function copyTaskLink(task) {
+  const url = `${window.location.origin}${window.location.pathname}#/campaigns/${task.campaign_id}/tasks/${task.id}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link copied. Paste it in Slack or an email.');
+  } catch {
+    window.prompt('Copy this link:', url);
+  }
 }
 
 // Hours on the task and its subtasks. Tasks with hours can't be deleted.

@@ -80,6 +80,19 @@ export function fmtShortDate(value) {
     : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// "1 Oct – 31 Dec", with the year only when it isn't this year
+export function fmtCompactRange(start, end) {
+  const parse = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
+  const thisYear = new Date().getFullYear();
+  const fmt = (iso, withYear) => parse(iso).toLocaleDateString('en-GB',
+    withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
+  if (!start && !end) return '—';
+  if (!end) return `From ${fmt(start, parse(start).getFullYear() !== thisYear)}`;
+  if (!start) return `Until ${fmt(end, parse(end).getFullYear() !== thisYear)}`;
+  const sameYear = start.slice(0, 4) === end.slice(0, 4);
+  const showYear = !sameYear || Number(end.slice(0, 4)) !== thisYear;
+  return `${fmt(start, !sameYear)} – ${fmt(end, showYear)}`;
+}
 export function fmtDateRange(start, end) {
   if (!start && !end) return '—';
   if (start && end) return `${fmtDate(start)} – ${fmtDate(end)}`;

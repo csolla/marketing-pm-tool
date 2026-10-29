@@ -22,6 +22,8 @@ const ROUTES = [
   { path: /^\/my-tasks$/, roles: WORK, nav: 'my-tasks', render: renderMyTasks },
   { path: /^\/campaigns$/, roles: WORK, nav: 'campaigns', render: renderCampaigns },
   { path: /^\/campaigns\/([0-9a-f-]{36})$/, roles: WORK, nav: 'campaigns', render: (el, id) => renderCampaign(el, id) },
+  // A shared task link: the campaign with that task open
+  { path: /^\/campaigns\/([0-9a-f-]{36})\/tasks\/([0-9a-f-]{36})$/, roles: WORK, nav: 'campaigns', render: (el, id, task) => renderCampaign(el, id, task) },
   { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: renderMyTime },
   { path: /^\/dashboards$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el) },
   { path: /^\/dashboards\/present$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el, { present: true }) },

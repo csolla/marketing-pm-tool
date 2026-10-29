@@ -879,6 +879,35 @@ th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { colo
 .mini-meter.meter-critical > span { background: var(--status-critical); }
 .mini-meter.meter-progress > span { background: var(--accent-bright); }
 
+/* Campaign page -------------------------------------------------------------------- */
+
+.campaign-summary { padding: 16px 20px; }
+.summary-top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px 28px; align-items: center; }
+.summary-title h1 { font-size: 24px; }
+.summary-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; color: var(--muted); font-size: 13.5px; }
+.summary-meta .unit-line { font-size: 13.5px; }
+.summary-stats { display: flex; gap: 24px; }
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
+.stat-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-value { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-weight: 600; white-space: nowrap; }
+.stat-value .mini-meter { width: 64px; margin: 0; }
+.stat .hours-split { margin-top: 2px; }
+.campaign-details { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.campaign-details .description { margin-bottom: 6px; color: var(--text-body); }
+.details-actions { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.details-actions .btn-small { margin-left: 0; }
+
+.tasks-section { margin-top: 18px; }
+.quick-add-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+.quick-add-bar .quick-title { flex: 1; min-width: 0; }
+.quick-add-bar select { max-width: 200px; }
+.tasks-toolbar .search { flex: 0 1 260px; }
+.column-add { margin-top: 8px; }
+.column-add input { width: 100%; }
+.column-add-open, .column-more { width: 100%; justify-content: flex-start; margin-left: 0 !important; color: var(--muted); }
+.column-more { margin-top: 6px; }
+.avatar-empty { display: inline-block; border-radius: 50%; border: 1.5px dashed var(--muted); opacity: 0.7; vertical-align: middle; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -912,6 +941,12 @@ th[aria-sort="ascending"] .sort-btn, th[aria-sort="descending"] .sort-btn { colo
   .timer-label { display: none; }
   .bell-panel { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
   .help { grid-template-columns: 1fr; }
+  .summary-top { grid-template-columns: 1fr; }
+  .summary-stats { flex-wrap: wrap; gap: 12px 20px; }
+  .quick-add-bar { flex-wrap: wrap; }
+  .quick-add-bar .quick-title { flex-basis: 100%; }
+  .quick-add-bar select, .quick-add-bar input[type=date] { flex: 1; max-width: none; }
+  .tasks-toolbar .search { flex: 1 1 100%; }
   /* Campaigns: each row becomes a card */
   .campaign-table thead { display: none; }
   .campaign-table, .campaign-table tbody { display: block; }

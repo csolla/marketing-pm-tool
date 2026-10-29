@@ -1,11 +1,11 @@
 import { supabase } from '../supabase.js';
 import { state } from '../state.js';
 import { onTasksChanged, onLiveChange } from '../realtime.js';
-import { updateTask, effectiveDue, dueGroup, isOverdue, todayIso, DUE_GROUPS } from '../tasks.js';
+import { updateTask, effectiveDue, dueGroup, isOverdue, todayIso, friendlyDue, DUE_GROUPS } from '../tasks.js';
 import { weekMinutes, weekStart, addDays } from '../time.js';
 import { availability, loadHolidays, loadTimeOff } from '../capacity.js';
 import { startTimer } from '../timer.js';
-import { esc, fmtShortDate, fmtDate, fmtHours, toast, errorMessage, TASK_STATUSES, BUSINESS_UNITS } from '../ui.js';
+import { esc, fmtDate, fmtHours, toast, errorMessage, TASK_STATUSES, BUSINESS_UNITS } from '../ui.js';
 import { openTaskPanel } from './task-panel.js';
 
 const SHOW_DONE_KEY = 'my-tasks-show-completed';
@@ -15,23 +15,6 @@ function savedShowDone() {
   try { return localStorage.getItem(SHOW_DONE_KEY) === '1'; } catch { return false; }
 }
 
-// "Today", "Tomorrow", "Fri", "2 days late", or a date further out
-function friendlyDue(due, status) {
-  if (!due) return '';
-  const today = todayIso();
-  if (due === today) return 'Today';
-  if (due === todayIso(1)) return 'Tomorrow';
-  if (due < today) {
-    if (status === 'done') return fmtShortDate(due);
-    const days = Math.round((new Date(today) - new Date(due)) / 86400000);
-    return `${days} day${days === 1 ? '' : 's'} late`;
-  }
-  if (due <= todayIso(6)) {
-    const [y, m, d] = due.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'long' });
-  }
-  return fmtShortDate(due);
-}
 
 // Home page: everything assigned to you (tasks and subtasks) across campaigns
 export async function renderMyTasks(el) {

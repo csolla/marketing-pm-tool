@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js';
 import { announce } from './realtime.js';
+import { fmtShortDate } from './ui.js';
 
 // Dates are 'YYYY-MM-DD' strings in local time, so they compare as text
 export function isoDate(date) {
@@ -18,6 +19,23 @@ export function effectiveDue(task, parent) {
   return task.due_date || parent?.due_date || null;
 }
 
+// "Today", "Tomorrow", "Fri", "2 days late", or a date further out
+export function friendlyDue(due, status) {
+  if (!due) return '';
+  const today = todayIso();
+  if (due === today) return 'Today';
+  if (due === todayIso(1)) return 'Tomorrow';
+  if (due < today) {
+    if (status === 'done') return fmtShortDate(due);
+    const days = Math.round((new Date(today) - new Date(due)) / 86400000);
+    return `${days} day${days === 1 ? '' : 's'} late`;
+  }
+  if (due <= todayIso(6)) {
+    const [y, m, d] = due.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'long' });
+  }
+  return fmtShortDate(due);
+}
 export function isOverdue(due, status) {
   return Boolean(due) && status !== 'done' && due < todayIso();
 }

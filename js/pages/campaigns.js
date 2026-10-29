@@ -4,7 +4,7 @@ import { onTasksChanged, onLiveChange } from '../realtime.js';
 import { tasksDonePct, todayIso } from '../tasks.js';
 import { loadCampaignHours } from '../time.js';
 import {
-  esc, options, statusPill, avatar, fmtHours, toast, errorMessage, formDialog,
+  esc, options, statusPill, avatar, fmtHours, fmtCompactRange, toast, errorMessage, formDialog,
   BUSINESS_UNITS, CAMPAIGN_STATUSES,
 } from '../ui.js';
 
@@ -119,19 +119,6 @@ function drawViews(el, data, draw) {
   }));
 }
 
-// "1 Oct – 31 Dec", with the year only when it isn't this year
-function compactRange(start, end) {
-  const parse = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); };
-  const thisYear = new Date().getFullYear();
-  const fmt = (iso, withYear) => parse(iso).toLocaleDateString('en-GB',
-    withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
-  if (!start && !end) return '—';
-  if (!end) return `From ${fmt(start, parse(start).getFullYear() !== thisYear)}`;
-  if (!start) return `Until ${fmt(end, parse(end).getFullYear() !== thisYear)}`;
-  const sameYear = start.slice(0, 4) === end.slice(0, 4);
-  const showYear = !sameYear || Number(end.slice(0, 4)) !== thisYear;
-  return `${fmt(start, !sameYear)} – ${fmt(end, showYear)}`;
-}
 
 // Past its end date but not marked Done or On hold
 function endedFlag(c) {
@@ -209,7 +196,7 @@ function drawList(list, data, draw) {
                   ${endedFlag(c)}
                 </td>
                 <td data-label="Owner">${owner ? `<span class="person">${avatar(owner, 24)}${esc(owner.name)}</span>` : '<span class="muted">—</span>'}</td>
-                <td data-label="Dates" class="nowrap">${esc(compactRange(c.start_date, c.end_date))}</td>
+                <td data-label="Dates" class="nowrap">${esc(fmtCompactRange(c.start_date, c.end_date))}</td>
                 <td data-label="Status">${statusPill(c.status)}</td>
                 <td data-label="Hours" class="meter-cell">
                   ${c.hoursPct == null ? '' : bar(c.hoursPct, hoursLevel)}

@@ -1,25 +1,30 @@
 import Sortable from 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/+esm';
 import { supabase } from '../supabase.js';
-import { canEditWork, isAdmin, personById } from '../state.js';
+import { state, canEditWork, isAdmin, personById } from '../state.js';
 import { onTasksChanged, onLiveChange } from '../realtime.js';
 import { loadCampaignHours } from '../time.js';
 import {
-  loadCampaignTasks, createTask, updateTask, positionBetween, byPosition, tasksDonePct, isOverdue,
+  loadCampaignTasks, createTask, updateTask, positionBetween, byPosition, tasksDonePct, isOverdue, friendlyDue,
 } from '../tasks.js';
 import {
-  esc, options, buTag, statusPill, avatar, fmtDateRange, fmtShortDate, fmtHours, toast, errorMessage,
-  confirmDialog, TASK_STATUSES,
+  esc, options, statusPill, avatar, fmtCompactRange, fmtDate, fmtHours, toast, errorMessage,
+  confirmDialog, TASK_STATUSES, BUSINESS_UNITS,
 } from '../ui.js';
 import { openCampaignForm } from './campaigns.js';
 import { openTaskPanel } from './task-panel.js';
 
 const VIEW_KEY = 'campaign-view';
+const DONE_SHOWN = 10;
+
+// Per campaign, for this visit: filters and the quick-add assignee/date
+const memory = {};
 
 function savedView() {
   try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'board'; } catch { return 'board'; }
 }
 
-export async function renderCampaign(el, id) {
+// openTask: a task to open straight away (from a shared task link)
+export async function renderCampaign(el, id, openTask = null) {
   el.innerHTML = '<p class="muted">Loading campaign…</p>';
 
   const [campaignResult, tasksResult] = await Promise.allSettled([
@@ -39,41 +44,63 @@ export async function renderCampaign(el, id) {
     return;
   }
 
+  memory[id] ||= { q: '', person: '', assignee: '', due: '', showAllDone: false, details: false };
+  const page = { el, campaign, tasks: tasksResult.value, view: savedView(), dragging: false, counts: {}, m: memory[id] };
   const owner = personById(campaign.owner_id);
-  const page = { el, campaign, tasks: tasksResult.value, view: savedView(), dragging: false, counts: {} };
+  const team = state.people.filter(p => p.active && p.role !== 'director');
 
   el.innerHTML = `
     <a class="back-link" href="#/campaigns">← Campaigns</a>
-    <section class="card campaign-head">
-      <div class="campaign-title">
-        <div>
-          <div class="tags">${buTag(campaign.business_unit)} ${statusPill(campaign.status)}</div>
+    <section class="card campaign-summary">
+      <div class="summary-top">
+        <div class="summary-title">
           <h1>${esc(campaign.name)}</h1>
+          <div class="summary-meta">
+            <span class="unit-line"><span class="unit-dot unit-dot-${esc(campaign.business_unit)}" aria-hidden="true"></span>${esc(BUSINESS_UNITS[campaign.business_unit])}</span>
+            ${statusPill(campaign.status)}
+            <span>${esc(fmtCompactRange(campaign.start_date, campaign.end_date))}</span>
+            ${owner ? `<span class="person">${avatar(owner, 20)}${esc(owner.name)}</span>` : ''}
+          </div>
+        </div>
+        <div class="summary-stats">
+          <div class="stat"><span class="stat-label">Hours</span><span data-hours>…</span></div>
+          <div class="stat"><span class="stat-label">Tasks done</span><span data-progress></span></div>
         </div>
         <div class="actions">
-          ${canEditWork() ? '<button class="btn" type="button" data-edit>Edit</button>' : ''}
-          ${isAdmin() ? '<button class="btn btn-danger-outline" type="button" data-delete hidden>Delete</button>' : ''}
+          <button class="btn btn-ghost btn-small" type="button" data-toggle-details aria-expanded="${page.m.details}">Details</button>
+          ${canEditWork() ? '<button class="btn btn-small" type="button" data-edit>Edit</button>' : ''}
         </div>
       </div>
-      <p class="muted small delete-note" data-delete-note hidden>
-        This campaign has hours logged, so it can't be deleted. Set it to Done or On hold instead.
-      </p>
-      ${campaign.description
-        ? `<p class="description">${esc(campaign.description)}</p>`
-        : '<p class="muted">No description.</p>'}
-      <dl class="details">
-        <div><dt>Dates</dt><dd>${esc(fmtDateRange(campaign.start_date, campaign.end_date))}</dd></div>
-        <div><dt>Owner</dt><dd>${owner ? `<span class="person">${avatar(owner, 24)}${esc(owner.name)}</span>` : '—'}</dd></div>
-        <div><dt>Hours logged / planned</dt><dd data-hours>…</dd></div>
-        <div><dt>Tasks done</dt><dd data-progress></dd></div>
-      </dl>
+      <div class="campaign-details" data-details ${page.m.details ? '' : 'hidden'}>
+        ${campaign.description ? `<p class="description">${esc(campaign.description)}</p>` : '<p class="muted">No description.</p>'}
+        <p class="muted small">${esc(fmtDate(campaign.start_date))}${campaign.end_date ? ` to ${esc(fmtDate(campaign.end_date))}` : ''} · Planned ${fmtHours(campaign.planned_hours)}</p>
+        ${isAdmin() ? `
+          <div class="details-actions">
+            <button class="btn btn-small btn-danger-outline" type="button" data-delete hidden>Delete campaign</button>
+            <span class="muted small" data-delete-note hidden>This campaign has hours logged, so it can't be deleted. Set it to Done or On hold instead.</span>
+          </div>` : ''}
+      </div>
     </section>
-    <section class="section">
+    <section class="section tasks-section">
+      ${canEditWork() ? `
+        <form class="quick-add-bar" data-quick-add>
+          <input class="quick-title" placeholder="Add a task and press Enter" aria-label="New task title" maxlength="300">
+          <select data-qa="assignee" aria-label="Assign new tasks to">
+            <option value="">Unassigned</option>
+            ${options(Object.fromEntries(team.map(p => [p.id, p.id === state.me.id ? `${p.name} (me)` : p.name])), page.m.assignee)}
+          </select>
+          <input type="date" data-qa="due" value="${esc(page.m.due)}" aria-label="Due date for new tasks">
+          <button class="btn btn-primary" type="submit">Add</button>
+        </form>` : ''}
       <div class="tasks-toolbar">
-        <h2>Tasks</h2>
-        <form class="quick-add" data-quick-add>
-          <input placeholder="Add a task and press Enter" aria-label="New task title" maxlength="300">
-        </form>
+        <input class="search" type="search" placeholder="Find a task" aria-label="Find a task" value="${esc(page.m.q)}" data-find>
+        <select data-person aria-label="Show tasks for">
+          <option value="">Everyone</option>
+          <option value="me" ${page.m.person === 'me' ? 'selected' : ''}>Only mine</option>
+          <option value="none" ${page.m.person === 'none' ? 'selected' : ''}>Unassigned</option>
+          ${options(Object.fromEntries(team.filter(p => p.id !== state.me.id).map(p => [p.id, p.name])), page.m.person)}
+        </select>
+        <span class="spacer"></span>
         <div class="view-switch" role="group" aria-label="View">
           <button type="button" data-view="board">Board</button>
           <button type="button" data-view="list">List</button>
@@ -82,10 +109,23 @@ export async function renderCampaign(el, id) {
       <div data-tasks></div>
     </section>`;
 
+  el.querySelector('[data-toggle-details]').addEventListener('click', event => {
+    page.m.details = !page.m.details;
+    event.currentTarget.setAttribute('aria-expanded', String(page.m.details));
+    el.querySelector('[data-details]').hidden = !page.m.details;
+  });
   el.querySelector('[data-edit]')?.addEventListener('click', () =>
     openCampaignForm(campaign, () => renderCampaign(el, id)));
   el.querySelector('[data-delete]')?.addEventListener('click', () => deleteCampaign(page));
-  el.querySelector('[data-quick-add]').addEventListener('submit', event => quickAdd(event, page));
+  const quick = el.querySelector('[data-quick-add]');
+  if (quick) {
+    quick.addEventListener('submit', event => quickAdd(event, page));
+    quick.querySelectorAll('[data-qa]').forEach(input => input.addEventListener('change', () => {
+      page.m[input.dataset.qa] = input.value;
+    }));
+  }
+  el.querySelector('[data-find]').addEventListener('input', event => { page.m.q = event.target.value; drawTasks(page); });
+  el.querySelector('[data-person]').addEventListener('change', event => { page.m.person = event.target.value; drawTasks(page); });
   el.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => {
     page.view = button.dataset.view;
     try { localStorage.setItem(VIEW_KEY, page.view); } catch { /* not saved; fine */ }
@@ -95,6 +135,7 @@ export async function renderCampaign(el, id) {
   drawTasks(page);
   loadHours(page);
   loadCounts(page);
+  if (openTask) openTaskPanel(openTask);
   onLiveChange(el, ['comments-changed', 'attachments-changed'], () => loadCounts(page), { isBusy: () => page.dragging });
   onLiveChange(el, 'time-changed', () => loadHours(page));
 
@@ -103,7 +144,11 @@ export async function renderCampaign(el, id) {
       page.tasks = await loadCampaignTasks(id);
       drawTasks(page);
     } catch { /* keep what's shown */ }
-  }, { isBusy: () => page.dragging });
+  }, { isBusy: () => page.dragging || page.el.contains(document.activeElement) && document.activeElement.matches('.column-add input') });
+}
+
+function meter(pct, level) {
+  return `<span class="mini-meter meter-${level}" aria-hidden="true"><span style="width:${Math.min(100, pct)}%"></span></span>`;
 }
 
 // Hours logged, with the Education / Planning Center split for Shared campaigns.
@@ -117,11 +162,15 @@ async function loadHours(page) {
     return;
   }
   const hours = Number(totals?.hours || 0);
+  const planned = Number(campaign.planned_hours);
+  const pct = planned > 0 ? hours / planned * 100 : null;
+  const level = pct == null ? 'none' : pct > 100 ? 'critical' : pct >= 80 ? 'warning' : 'good';
   const split = campaign.business_unit === 'shared' && hours
     ? `<span class="muted small hours-split">${fmtHours(totals.education_hours)} Education · ${fmtHours(totals.planning_center_hours)} Planning Center</span>`
     : '';
-  el.querySelector('[data-hours]').innerHTML =
-    `<span class="${hours > Number(campaign.planned_hours) && Number(campaign.planned_hours) > 0 ? 'over-plan' : ''}">${fmtHours(hours)}</span> / ${fmtHours(campaign.planned_hours)}${split}`;
+  el.querySelector('[data-hours]').innerHTML = `
+    <span class="stat-value">${pct == null ? '' : meter(pct, level)}
+      <span class="${level === 'critical' ? 'over-plan' : ''}">${fmtHours(hours)}</span>${planned ? ` <span class="muted">of ${fmtHours(planned)}</span>` : ''}</span>${split}`;
   const remove = el.querySelector('[data-delete]');
   if (remove) {
     remove.hidden = hours > 0;
@@ -129,23 +178,42 @@ async function loadHours(page) {
   }
 }
 
+// Filters: words in the task or its subtasks; a person as assignee of the
+// task or any of its subtasks
+function matches(page, task, subtasks) {
+  const q = page.m.q.trim().toLowerCase();
+  const person = page.m.person === 'me' ? state.me.id : page.m.person;
+  const textOk = !q || [task, ...subtasks].some(t => t.title.toLowerCase().includes(q));
+  if (!person) return textOk;
+  if (person === 'none') return textOk && !task.assignee_id;
+  return textOk && [task, ...subtasks].some(t => t.assignee_id === person);
+}
+
 function drawTasks(page) {
   const { el, tasks, view } = page;
+  const main = tasks.filter(t => !t.parent_id);
   const pct = tasksDonePct(tasks);
-  el.querySelector('[data-progress]').textContent = pct == null ? '—' : `${pct}%`;
+  const done = main.filter(t => t.status === 'done').length;
+  el.querySelector('[data-progress]').innerHTML = pct == null
+    ? '<span class="muted">No tasks yet</span>'
+    : `<span class="stat-value">${meter(pct, 'progress')} ${done} of ${main.length} <span class="muted">(${pct}%)</span></span>`;
   el.querySelectorAll('[data-view]').forEach(button =>
     button.setAttribute('aria-pressed', String(button.dataset.view === view)));
 
   const container = el.querySelector('[data-tasks]');
-  const main = tasks.filter(t => !t.parent_id);
   const subtasksOf = id => tasks.filter(t => t.parent_id === id);
-
   if (!main.length) {
-    container.innerHTML = '<div class="empty-state"><p>No tasks yet. Type a title above and press Enter to add the first one.</p></div>';
+    container.innerHTML = `<div class="empty-state"><p>No tasks yet.${canEditWork() ? ' Type a title above and press Enter to add the first one.' : ''}</p></div>`;
     return;
   }
-  if (view === 'list') drawList(page, container, main, subtasksOf);
-  else drawBoard(page, container, main, subtasksOf);
+  const filtering = Boolean(page.m.q.trim() || page.m.person);
+  const shown = main.filter(t => matches(page, t, subtasksOf(t.id)));
+  if (!shown.length) {
+    container.innerHTML = '<div class="empty-state"><p>No tasks match. Change the person or clear the search.</p></div>';
+    return;
+  }
+  if (view === 'list') drawList(page, container, shown, subtasksOf);
+  else drawBoard(page, container, shown, subtasksOf, filtering);
 }
 
 // Comment and attachment counts for the cards
@@ -179,35 +247,54 @@ function subtaskCount(subtasks) {
 function dueLabel(task) {
   if (!task.due_date) return '';
   const late = isOverdue(task.due_date, task.status);
-  return `<span class="due ${late ? 'overdue' : ''}" title="${late ? 'Overdue' : 'Due date'}">${esc(fmtShortDate(task.due_date))}</span>`;
+  return `<span class="due ${late ? 'overdue' : ''}" title="Due ${esc(fmtDate(task.due_date))}">${esc(friendlyDue(task.due_date, task.status))}</span>`;
+}
+
+function assigneeBadge(task, size = 24) {
+  const assignee = personById(task.assignee_id);
+  return assignee
+    ? `<span title="${esc(assignee.name)}">${avatar(assignee, size)}</span>`
+    : `<span class="avatar avatar-empty" style="width:${size}px;height:${size}px" title="Unassigned" aria-label="Unassigned"></span>`;
 }
 
 // Board ---------------------------------------------------------------------
 
-function drawBoard(page, container, main, subtasksOf) {
+function drawBoard(page, container, main, subtasksOf, filtering) {
   container.innerHTML = `
     <div class="board">
       ${Object.entries(TASK_STATUSES).map(([status, label]) => {
-        const column = main.filter(t => t.status === status).sort(byPosition);
+        let column = main.filter(t => t.status === status).sort(byPosition);
+        const total = column.length;
+        // Done keeps growing: show the most recently finished unless asked for all
+        let hidden = 0;
+        if (status === 'done' && !filtering && !page.m.showAllDone && total > DONE_SHOWN) {
+          const recent = new Set([...column].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, DONE_SHOWN).map(t => t.id));
+          column = column.filter(t => recent.has(t.id));
+          hidden = total - DONE_SHOWN;
+        }
         return `
           <section class="board-col">
-            <header class="board-col-head"><h3>${esc(label)}</h3><span class="muted">${column.length}</span></header>
+            <header class="board-col-head"><h3>${esc(label)}</h3><span class="muted">${total}</span></header>
             <div class="board-cards" data-status="${status}">
-              ${column.map(task => {
-                const assignee = personById(task.assignee_id);
-                return `
-                  <article class="task-card ${status === 'done' ? 'is-done' : ''}" data-id="${esc(task.id)}" tabindex="0">
-                    <p class="task-card-title">${esc(task.title)}</p>
-                    <div class="task-card-meta">
-                      ${dueLabel(task)}
-                      ${subtaskCount(subtasksOf(task.id))}
-                      ${activityCounts(page, task.id)}
-                      <span class="spacer"></span>
-                      ${assignee ? `<span title="${esc(assignee.name)}">${avatar(assignee, 24)}</span>` : ''}
-                    </div>
-                  </article>`;
-              }).join('')}
+              ${column.map(task => `
+                <article class="task-card ${status === 'done' ? 'is-done' : ''}" data-id="${esc(task.id)}" tabindex="0">
+                  <p class="task-card-title">${esc(task.title)}</p>
+                  <div class="task-card-meta">
+                    ${dueLabel(task)}
+                    ${subtaskCount(subtasksOf(task.id))}
+                    ${activityCounts(page, task.id)}
+                    <span class="spacer"></span>
+                    ${assigneeBadge(task)}
+                  </div>
+                </article>`).join('')}
             </div>
+            ${hidden ? `<button class="btn btn-ghost btn-small column-more" type="button" data-show-done>Show all ${total} done</button>` : ''}
+            ${status === 'done' && page.m.showAllDone && total > DONE_SHOWN && !filtering
+              ? '<button class="btn btn-ghost btn-small column-more" type="button" data-hide-done>Show only the latest</button>' : ''}
+            ${canEditWork() ? `<form class="column-add" data-column-add="${status}">
+              <button class="btn btn-ghost btn-small column-add-open" type="button">+ Add task</button>
+              <input placeholder="Task title, then Enter" aria-label="New task in ${esc(label)}" maxlength="300" hidden>
+            </form>` : ''}
           </section>`;
       }).join('')}
     </div>`;
@@ -216,6 +303,26 @@ function drawBoard(page, container, main, subtasksOf) {
     card.addEventListener('click', () => openTaskPanel(card.dataset.id));
     card.addEventListener('keydown', event => { if (event.key === 'Enter') openTaskPanel(card.dataset.id); });
   });
+  container.querySelector('[data-show-done]')?.addEventListener('click', () => { page.m.showAllDone = true; drawTasks(page); });
+  container.querySelector('[data-hide-done]')?.addEventListener('click', () => { page.m.showAllDone = false; drawTasks(page); });
+
+  container.querySelectorAll('[data-column-add]').forEach(form => {
+    const open = form.querySelector('.column-add-open');
+    const input = form.querySelector('input');
+    const close = () => { input.hidden = true; open.hidden = false; input.value = ''; };
+    open.addEventListener('click', () => { open.hidden = true; input.hidden = false; input.focus(); });
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } });
+    input.addEventListener('blur', () => { if (!input.value.trim()) close(); });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const title = input.value.trim();
+      if (!title) return;
+      input.value = '';
+      await addTask(page, title, form.dataset.columnAdd);
+      // Keep the box open in the same column for the next one
+      container.querySelector(`[data-column-add="${form.dataset.columnAdd}"] .column-add-open`)?.click();
+    });
+  });
 
   container.querySelectorAll('.board-cards').forEach(column => Sortable.create(column, {
     group: 'tasks',
@@ -223,6 +330,7 @@ function drawBoard(page, container, main, subtasksOf) {
     delayOnTouchOnly: true,
     delay: 150,
     ghostClass: 'drag-ghost',
+    disabled: !canEditWork(),
     onStart: () => { page.dragging = true; },
     onEnd: event => moveTask(page, event),
   }));
@@ -270,7 +378,7 @@ function drawList(page, container, main, subtasksOf) {
               <tr data-id="${esc(task.id)}" class="clickable ${task.status === 'done' ? 'is-done' : ''}">
                 <td class="tick-col"><input type="checkbox" data-done ${task.status === 'done' ? 'checked' : ''} aria-label="Done"></td>
                 <td><span class="task-title">${esc(task.title)}</span> ${subtaskCount(subtasksOf(task.id))} ${activityCounts(page, task.id)}</td>
-                <td>${assignee ? `<span class="person">${avatar(assignee, 24)}${esc(assignee.name)}</span>` : '<span class="muted">—</span>'}</td>
+                <td>${assignee ? `<span class="person">${avatar(assignee, 24)}${esc(assignee.name)}</span>` : `<span class="person">${assigneeBadge(task)}<span class="muted">Unassigned</span></span>`}</td>
                 <td class="nowrap">${dueLabel(task) || '<span class="muted">—</span>'}</td>
                 <td><select data-status aria-label="Status">${options(TASK_STATUSES, task.status)}</select></td>
               </tr>`;
@@ -303,25 +411,39 @@ async function setStatus(page, task, status) {
   }
 }
 
-// Quick add and campaign delete --------------------------------------------
+// Adding tasks ----------------------------------------------------------------
+
+// New tasks go to the bottom of their column, with the quick-add
+// assignee and due date
+async function addTask(page, title, status) {
+  const column = page.tasks.filter(t => !t.parent_id && t.status === status);
+  const last = Math.max(0, ...column.map(t => t.position));
+  try {
+    const task = await createTask({
+      campaign_id: page.campaign.id,
+      title,
+      status,
+      position: last + 1000,
+      assignee_id: page.m.assignee || null,
+      due_date: page.m.due || null,
+    });
+    if (!page.tasks.some(t => t.id === task.id)) page.tasks.push(task);
+    drawTasks(page);
+    return true;
+  } catch (error) {
+    toast(errorMessage(error), 'error');
+    return false;
+  }
+}
 
 async function quickAdd(event, page) {
   event.preventDefault();
-  const input = event.target.querySelector('input');
+  const input = event.target.querySelector('.quick-title');
   const title = input.value.trim();
   if (!title) return;
   input.value = '';
-
-  const todo = page.tasks.filter(t => !t.parent_id && t.status === 'todo');
-  const last = Math.max(0, ...todo.map(t => t.position));
-  try {
-    const task = await createTask({ campaign_id: page.campaign.id, title, status: 'todo', position: last + 1000 });
-    if (!page.tasks.some(t => t.id === task.id)) page.tasks.push(task);
-    drawTasks(page);
-  } catch (error) {
-    input.value = title;
-    toast(errorMessage(error), 'error');
-  }
+  if (!(await addTask(page, title, 'todo'))) input.value = title;
+  input.focus();
 }
 
 async function deleteCampaign(page) {
