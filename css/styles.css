@@ -489,14 +489,45 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .due-group h2 { font-size: 15px; margin-bottom: 8px; }
 .due-group-overdue h2 { color: var(--danger); }
 .my-task-list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
-.my-task { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.my-task {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(0, 220px) 104px 110px 32px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
 .my-task:last-child { border-bottom: 0; }
 .my-task:hover { background: var(--surface-2); }
-.my-task-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.my-task .task-title { font-weight: 550; overflow-wrap: anywhere; }
+.my-task-main { min-width: 0; display: flex; flex-direction: column; }
+.my-task .task-title { font-weight: 550; color: var(--text); overflow-wrap: anywhere; }
 .my-task.is-done .task-title { color: var(--muted); text-decoration: line-through; }
-.my-task-campaign { color: var(--muted); font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.my-task .due { width: 64px; text-align: right; }
+.my-task-campaign { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.campaign-name { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-task .due { text-align: right; font-size: 13.5px; }
+.tick { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; }
+.tick:hover { background: var(--accent-soft); }
+.tick input { width: 20px; height: 20px; cursor: pointer; }
+.row-timer { font-size: 13px !important; color: var(--muted); padding: 6px; opacity: 0.6; }
+.my-task:hover .row-timer, .row-timer:focus-visible { opacity: 1; color: var(--accent); }
+.status-task-in_progress { background: var(--accent-soft); color: var(--accent); }
+.status-task-in_review { background: var(--signal-soft); color: var(--signal-ink); }
+.my-tasks-header { align-items: center; }
+.task-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.summary-chip { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 13px; font-weight: 600; }
+.summary-chip.is-danger { background: var(--danger-bg); color: var(--danger); }
+.week-card {
+  display: flex; flex-direction: column; gap: 4px; min-width: 190px; padding: 10px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); text-decoration: none; color: var(--text);
+}
+.week-card:hover { border-color: var(--accent-bright); }
+.week-card strong { font-family: var(--font-display); font-size: 18px; }
+.week-card .mini-meter { width: 100%; margin: 0; }
+.list-toolbar { display: flex; justify-content: flex-end; margin: -6px 0 10px; }
+.subtask.is-highlight { background: var(--signal-soft); border-radius: 6px; box-shadow: inset 3px 0 0 var(--signal); }
+.toast { display: flex; align-items: center; gap: 14px; }
+.toast-action { border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
 
 /* Time: timer bar ------------------------------------------------------------ */
 
@@ -834,10 +865,14 @@ body.presenting .budget-figures strong { font-size: 26px; }
   .subtask-title { flex-basis: calc(100% - 70px); }
   .subtask-assignee, .subtask-due { flex: 1; width: auto; margin-left: 26px; }
   .subtask-due { margin-left: 0; }
-  .my-task { flex-wrap: wrap; row-gap: 4px; }
-  .my-task-main { flex-basis: calc(100% - 40px); }
-  .my-task-campaign { margin-left: 30px; }
-  .my-task .due { width: auto; margin-left: auto; }
+  .my-task { grid-template-columns: 32px minmax(0, 1fr) auto; row-gap: 2px; }
+  .my-task-main { grid-column: 2 / 4; }
+  .my-task-campaign { grid-column: 2; }
+  .my-task-status { grid-column: 3; grid-row: 2; justify-self: end; }
+  .my-task .due { grid-column: 2; text-align: left; }
+  .row-timer { grid-column: 3; grid-row: 3; justify-self: end; opacity: 1; }
+  .my-tasks-header { align-items: stretch; }
+  .week-card { min-width: 0; }
   .budget-table input.budget-input { width: 80px; }
   .dash-header .actions { flex-wrap: wrap; }
   .timer-bar { max-width: 46vw; padding-left: 10px; }

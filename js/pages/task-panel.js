@@ -12,7 +12,8 @@ import { mountAttachments, mountComments } from './task-discussion.js';
 // and from My tasks. Every field saves when you leave it.
 let current = null;
 
-export async function openTaskPanel(taskId) {
+// highlight: a subtask to point out once the panel is open
+export async function openTaskPanel(taskId, { highlight = null } = {}) {
   closeTaskPanel();
 
   const backdrop = document.createElement('div');
@@ -26,7 +27,7 @@ export async function openTaskPanel(taskId) {
   requestAnimationFrame(() => panel.classList.add('open'));
   backdrop.addEventListener('click', closeTaskPanel);
 
-  current = { taskId, panel, backdrop, task: null, subtasks: [] };
+  current = { taskId, panel, backdrop, task: null, subtasks: [], highlight };
   const mine = current;
 
   let data;
@@ -44,7 +45,7 @@ export async function openTaskPanel(taskId) {
   }
   // Subtasks open in their parent task's panel
   if (data.task.parent_id) {
-    openTaskPanel(data.task.parent_id);
+    openTaskPanel(data.task.parent_id, { highlight: data.task.id });
     return;
   }
 
@@ -131,6 +132,13 @@ function render() {
 
   fillFields();
   renderSubtasks();
+  if (current.highlight) {
+    const row = panel.querySelector(`[data-subtasks] li[data-id="${CSS.escape(current.highlight)}"]`);
+    if (row) {
+      row.classList.add('is-highlight');
+      setTimeout(() => row.scrollIntoView({ block: 'center', behavior: 'smooth' }), 250);
+    }
+  }
 
   panel.querySelector('[data-close]').addEventListener('click', closeTaskPanel);
   panel.querySelector('[data-delete]').addEventListener('click', removeTask);

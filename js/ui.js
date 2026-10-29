@@ -92,13 +92,28 @@ export function fmtHours(value) {
   return `${parseFloat(n.toFixed(2))} h`;
 }
 
-export function toast(message, type = 'success') {
+// A short message at the bottom of the screen. An optional action adds a
+// button (e.g. { label: 'Undo', onClick }) and keeps the message up longer.
+export function toast(message, type = 'success', { action } = {}) {
   const box = document.getElementById('toasts');
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.textContent = message;
+  const text = document.createElement('span');
+  text.textContent = message;
+  el.append(text);
+  if (action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'toast-action';
+    button.textContent = action.label;
+    button.addEventListener('click', () => {
+      el.remove();
+      action.onClick();
+    });
+    el.append(button);
+  }
   box.append(el);
-  setTimeout(() => el.remove(), type === 'error' ? 6000 : 3000);
+  setTimeout(() => el.remove(), action ? 7000 : type === 'error' ? 6000 : 3000);
 }
 
 // Turns Supabase errors into something readable
