@@ -62,17 +62,25 @@ const compact = n => (n >= 1000 ? `${parseFloat((n / 1000).toFixed(1))}K` : Stri
 
 // Hours per unit per month as paired columns, with each unit's budget as a
 // dashed line. months: [{ month, label, edu, pc, internal, eduBudget, pcBudget, highlight }]
-export function trendChart(container, months) {
+// focus: 'education' or 'planning_center' draws that unit alone (one column per month)
+export function trendChart(container, months, { focus = null } = {}) {
+  const showEdu = focus !== 'planning_center';
+  const showPc = focus !== 'education';
+  const single = !(showEdu && showPc);
   const W = 720;
   const H = 260;
   const m = { l: 40, r: 12, t: 14, b: 30 };
   const plotW = W - m.l - m.r;
   const plotH = H - m.t - m.b;
-  const values = months.flatMap(d => [d.edu, d.pc, d.eduBudget || 0, d.pcBudget || 0]);
+  const values = months.flatMap(d => [
+    showEdu ? d.edu : 0, showPc ? d.pc : 0, showEdu ? d.eduBudget || 0 : 0, showPc ? d.pcBudget || 0 : 0]);
   const { top, ticks } = niceScale(Math.max(0, ...values));
   const y = v => m.t + plotH - (v / top) * plotH;
   const band = plotW / months.length;
-  const barW = Math.max(4, Math.min(24, (band * 0.7 - 2) / 2));
+  const barW = Math.max(4, Math.min(24, single ? band * 0.5 : (band * 0.7 - 2) / 2));
+  // Column x position: side by side for both units, centred for one
+  const eduX = i => (single ? center(i) - barW / 2 : center(i) - barW - 1);
+  const pcX = i => (single ? center(i) - barW / 2 : center(i) + 1);
   const center = i => m.l + band * i + band / 2;
 
   // Each month's budget as a short level line across that month's columns
@@ -81,10 +89,10 @@ export function trendChart(container, months) {
 
   container.innerHTML = `
     <div class="chart-legend" aria-hidden="true">
-      <span><span class="swatch swatch-education"></span>Education</span>
-      <span><span class="swatch swatch-planning_center"></span>Planning Center</span>
-      <span><span class="line-key line-key-education"></span>Education budget</span>
-      <span><span class="line-key line-key-planning_center"></span>Planning Center budget</span>
+      ${showEdu ? '<span><span class="swatch swatch-education"></span>Education</span>' : ''}
+      ${showPc ? '<span><span class="swatch swatch-planning_center"></span>Planning Center</span>' : ''}
+      ${showEdu ? '<span><span class="line-key line-key-education"></span>Education budget</span>' : ''}
+      ${showPc ? '<span><span class="line-key line-key-planning_center"></span>Planning Center budget</span>' : ''}
     </div>
     <div class="chart-wrap">
       <svg class="trend-chart" viewBox="0 0 ${W} ${H}" role="img"
@@ -96,14 +104,14 @@ export function trendChart(container, months) {
           ${ticks.map(t => `<text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('')}
           ${months.map((d, i) => `<text x="${center(i)}" y="${H - 10}" text-anchor="middle" class="${d.highlight ? 'is-highlight' : ''}">${esc(d.label)}</text>`).join('')}
         </g>
-        <g class="bars-edu">
-          ${months.map((d, i) => `<path d="${columnPath(center(i) - barW - 1, y(d.edu), barW, plotH + m.t - y(d.edu))}" />`).join('')}
-        </g>
-        <g class="bars-pc">
-          ${months.map((d, i) => `<path d="${columnPath(center(i) + 1, y(d.pc), barW, plotH + m.t - y(d.pc))}" />`).join('')}
-        </g>
-        <g class="budget-line budget-line-edu">${budgetLine('eduBudget')}</g>
-        <g class="budget-line budget-line-pc">${budgetLine('pcBudget')}</g>
+        ${showEdu ? `<g class="bars-edu">
+          ${months.map((d, i) => `<path d="${columnPath(eduX(i), y(d.edu), barW, plotH + m.t - y(d.edu))}" />`).join('')}
+        </g>` : ''}
+        ${showPc ? `<g class="bars-pc">
+          ${months.map((d, i) => `<path d="${columnPath(pcX(i), y(d.pc), barW, plotH + m.t - y(d.pc))}" />`).join('')}
+        </g>` : ''}
+        ${showEdu ? `<g class="budget-line budget-line-edu">${budgetLine('eduBudget')}</g>` : ''}
+        ${showPc ? `<g class="budget-line budget-line-pc">${budgetLine('pcBudget')}</g>` : ''}
         <line class="baseline" x1="${m.l}" x2="${W - m.r}" y1="${m.t + plotH}" y2="${m.t + plotH}" />
         <g class="hover-bands">
           ${months.map((d, i) => `<rect x="${m.l + band * i}" y="${m.t}" width="${band}" height="${plotH}" data-i="${i}" tabindex="0"

@@ -15,7 +15,18 @@ export function showDashboardMonth(month) {
 }
 
 // Kept between visits, so Present shows the same period
-const view = { month: currentMonth(), mode: 'month', trendMonths: 6, upcomingMonths: 3, unit: null, trendAsTable: false };
+// focus: null (both units), 'education' or 'planning_center'; slide: Present
+const view = { month: currentMonth(), mode: 'month', trendMonths: 6, upcomingMonths: 3, focus: null, trendAsTable: false, slide: 0 };
+
+const SECTIONS = [
+  { id: 'headline', label: 'Headlines' },
+  { id: 'budget', label: 'Budget' },
+  { id: 'trend', label: 'Trend' },
+  { id: 'campaigns', label: 'Campaigns' },
+  { id: 'capacity', label: 'Team' },
+  { id: 'upcoming', label: 'Upcoming' },
+];
+let presentKeys = null;
 
 const UNITS = { education: 'Education', planning_center: 'Planning Center' };
 const sum = (list, field) => list.reduce((total, row) => total + Number(row[field] || 0), 0);
@@ -46,7 +57,15 @@ export async function renderDashboards(el, { present = false } = {}) {
         <button type="button" data-mode="month" aria-pressed="${view.mode === 'month'}">Month</button>
         <button type="button" data-mode="quarter" aria-pressed="${view.mode === 'quarter'}">This quarter</button>
       </div>
+      <div class="view-switch" role="group" aria-label="Business unit">
+        <button type="button" data-focus="" aria-pressed="${!view.focus}">Both units</button>
+        <button type="button" data-focus="education" aria-pressed="${view.focus === 'education'}">Education</button>
+        <button type="button" data-focus="planning_center" aria-pressed="${view.focus === 'planning_center'}">Planning Center</button>
+      </div>
     </div>
+    ${present ? '' : `<nav class="dash-menu" aria-label="Dashboard sections">
+      ${SECTIONS.map(sec => `<button type="button" data-jump="${sec.id}">${esc(sec.label)}</button>`).join('')}
+    </nav>`}
     <div data-dash><p class="muted">Loading figures…</p></div>`;
 
   const rerender = () => renderDashboards(el, { present });
@@ -64,6 +83,12 @@ export async function renderDashboards(el, { present = false } = {}) {
     view.mode = button.dataset.mode;
     rerender();
   }));
+  el.querySelectorAll('[data-focus]').forEach(button => button.addEventListener('click', () => {
+    view.focus = button.dataset.focus || null;
+    rerender();
+  }));
+  el.querySelectorAll('[data-jump]').forEach(button => button.addEventListener('click', () =>
+    el.querySelector(`#dash-${button.dataset.jump}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
 
   const loadAndDraw = async () => {
     let data;
@@ -98,10 +123,13 @@ async function loadData() {
     if (error) throw error;
     return data;
   };
-  // Holidays and time off cover the whole trend, for each month's automatic budget
-  const windowFrom = monthFirst(trendFrom < period.months[0] ? trendFrom : period.months[0]);
-  const [budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings] = await Promise.all([
-    loadBudgets(trendFrom < period.months[0] ? trendFrom : period.months[0], lastMonth),
+  // The period before, for the headline changes
+  const previous = periodFor(shiftMonth(period.months[0], view.mode === 'quarter' ? -3 : -1), view.mode);
+  // Holidays, time off and budgets cover the trend and the previous period
+  const firstMonth = [trendFrom, period.months[0], previous.months[0]].sort()[0];
+  const windowFrom = monthFirst(firstMonth);
+  const [budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings, previousEntries] = await Promise.all([
+    loadBudgets(firstMonth, lastMonth),
     query(supabase.from('monthly_unit_hours').select('*').gte('month', monthFirst(trendFrom)).lte('month', monthFirst(lastMonth))),
     query(supabase.from('time_entries')
       .select('person_id, campaign_id, hours, education_hours, planning_center_hours, internal_hours')
@@ -111,20 +139,29 @@ async function loadData() {
     loadHolidays(windowFrom, period.to),
     loadTimeOff({ from: windowFrom, to: period.to }),
     loadTeamSettings(),
+    query(supabase.from('time_entries').select('person_id, education_hours, planning_center_hours')
+      .gte('entry_date', previous.from).lte('entry_date', previous.to)),
   ]);
-  return { period, trendFrom, upcomingTo, budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings };
+  return {
+    period, previous, trendFrom, upcomingTo, budgets, monthly, entries, campaigns, totals, holidays, timeOff, settings, previousEntries,
+  };
 }
 
 function draw(el, data) {
   const box = el.querySelector('[data-dash]');
+  const present = document.body.classList.contains('presenting');
   box.innerHTML = `
-    <section class="card dash-section">
+    <section class="dash-section dash-headline" id="dash-headline">
+      <h2 class="${present ? '' : 'visually-hidden'}">Headlines</h2>
+      <div class="kpis" data-kpis></div>
+    </section>
+    <section class="card dash-section" id="dash-budget">
       <h2>Budget overview</h2>
-      <p class="muted small">Hours used against each unit's budget for ${esc(data.period.label)}. Shared hours are already split. Click a unit to see its campaigns below.</p>
+      <p class="muted small">Hours used against each unit's budget for ${esc(data.period.label)}. Shared hours are already split. Click a unit to focus the whole page on it.</p>
       <div class="budget-bars" data-budget-bars></div>
       <p class="internal-line" data-internal></p>
     </section>
-    <section class="card dash-section">
+    <section class="card dash-section" id="dash-trend">
       <div class="section-head">
         <h2>Trend</h2>
         <div class="view-switch" role="group" aria-label="Months shown">
@@ -135,19 +172,19 @@ function draw(el, data) {
       </div>
       <div data-trend-chart></div>
     </section>
-    <section class="card dash-section">
+    <section class="card dash-section" id="dash-campaigns">
       <div class="section-head">
         <h2>By campaign</h2>
         <span data-unit-filter></span>
       </div>
       <div data-campaigns></div>
     </section>
-    <section class="card dash-section">
+    <section class="card dash-section" id="dash-capacity">
       <h2>Team capacity</h2>
       <p class="muted small">Productive hours available after time off and bank holidays, against campaign hours logged in the period.</p>
       <div data-capacity></div>
     </section>
-    <section class="card dash-section">
+    <section class="card dash-section" id="dash-upcoming">
       <div class="section-head">
         <h2>Upcoming</h2>
         <div class="view-switch" role="group" aria-label="Months ahead">
@@ -172,11 +209,119 @@ function draw(el, data) {
     drawTrend(box, data);
   });
 
+  drawHeadlines(box, data);
   drawBudget(box, data);
   drawTrend(box, data);
   drawCampaigns(box, data);
   drawCapacity(box, data);
   drawUpcoming(box, data);
+  if (present) setUpSlides(el, box);
+}
+
+// Present: one section per screen, stepped with buttons or arrow keys
+function setUpSlides(el, box) {
+  const sections = [...box.querySelectorAll('.dash-section')];
+  view.slide = Math.min(view.slide, sections.length - 1);
+  const bar = document.createElement('div');
+  bar.className = 'slide-bar';
+  bar.innerHTML = `
+    <button class="btn" type="button" data-prev aria-label="Previous section">← Previous</button>
+    <span class="slide-pos" data-pos></span>
+    <button class="btn btn-primary" type="button" data-next aria-label="Next section">Next →</button>`;
+  box.append(bar);
+  const show = index => {
+    view.slide = Math.max(0, Math.min(sections.length - 1, index));
+    sections.forEach((section, i) => { section.hidden = i !== view.slide; });
+    bar.querySelector('[data-pos]').innerHTML =
+      `${view.slide + 1} / ${sections.length} · ${esc(SECTIONS[view.slide]?.label || '')}
+       <span class="slide-dots" aria-hidden="true">${sections.map((_, i) => `<span class="${i === view.slide ? 'on' : ''}"></span>`).join('')}</span>`;
+    bar.querySelector('[data-prev]').disabled = view.slide === 0;
+    bar.querySelector('[data-next]').disabled = view.slide === sections.length - 1;
+  };
+  bar.querySelector('[data-prev]').addEventListener('click', () => show(view.slide - 1));
+  bar.querySelector('[data-next]').addEventListener('click', () => show(view.slide + 1));
+  if (presentKeys) document.removeEventListener('keydown', presentKeys);
+  presentKeys = event => {
+    if (!el.isConnected) {
+      document.removeEventListener('keydown', presentKeys);
+      presentKeys = null;
+      return;
+    }
+    if (event.target.closest('input, select, textarea')) return;
+    if (['ArrowRight', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); show(view.slide + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); show(view.slide - 1); }
+  };
+  document.addEventListener('keydown', presentKeys);
+  show(view.slide);
+}
+
+// Headline figures, with the change since the previous period
+function drawHeadlines(box, data) {
+  const pct = (used, budget) => (budget ? Math.round(used / budget * 100) : null);
+  const prevLabel = view.mode === 'quarter'
+    ? data.previous.label.split(' (')[0]
+    : monthName(data.previous.months[0], 'short').split(' ')[0];
+  const delta = (now, before) => {
+    if (now == null || before == null) return '';
+    const d = now - before;
+    if (d === 0) return `<span class="kpi-delta">No change vs ${esc(prevLabel)}</span>`;
+    return `<span class="kpi-delta">${d > 0 ? '↑' : '↓'} ${Math.abs(d)} pts vs ${esc(prevLabel)}</span>`;
+  };
+
+  const units = budgetFigures(data);
+  const previousUnits = budgetFigures({ ...data, period: data.previous, entries: data.previousEntries });
+  const tiles = units
+    .filter(u => !view.focus || u.key === view.focus)
+    .map(u => {
+      const before = previousUnits.find(p => p.key === u.key);
+      const now = pct(u.used, u.budget);
+      const status = budgetStatus(u.used, u.budget);
+      return `
+        <div class="kpi">
+          <span class="kpi-label"><span class="swatch swatch-${u.key}" aria-hidden="true"></span>${esc(u.label)} budget used</span>
+          <strong class="kpi-value">${now == null ? '—' : `${now}%`}</strong>
+          <span class="kpi-sub">${fmtHours(u.used)}${u.budget ? ` of ${fmtHours(Math.round(u.budget))}` : ''}
+            <span class="status-chip status-${status.key}"><span aria-hidden="true">${status.icon}</span> ${esc(status.label)}</span></span>
+          ${delta(now, pct(before.used, before.budget))}
+        </div>`;
+    });
+
+  // Team: campaign hours against productive hours, now and before
+  const team = period => {
+    const people = capacityPeople(state.people);
+    const entries = period === data.period ? data.entries : data.previousEntries;
+    const productiveHours = people.reduce((t, p) =>
+      t + productive(availability(p, period.from, period.to, data.holidays, data.timeOff).hours, data.settings), 0);
+    const ids = new Set(people.map(p => p.id));
+    const campaignHours = entries.filter(e => ids.has(e.person_id))
+      .reduce((t, e) => t + Number(e.education_hours) + Number(e.planning_center_hours), 0);
+    return { productiveHours, campaignHours, pct: pct(campaignHours, productiveHours) };
+  };
+  const now = team(data.period);
+  const before = team(data.previous);
+  tiles.push(`
+    <div class="kpi">
+      <span class="kpi-label">Team productive time used</span>
+      <strong class="kpi-value">${now.pct == null ? '—' : `${now.pct}%`}</strong>
+      <span class="kpi-sub">${fmtHours(Math.round(now.campaignHours))} of ${fmtHours(Math.round(now.productiveHours))} on campaigns</span>
+      ${delta(now.pct, before.pct)}
+    </div>`);
+
+  const active = focusCampaigns(campaignFigures(data));
+  const over = active.filter(c => c.overPlan);
+  tiles.push(`
+    <div class="kpi ${over.length ? 'kpi-alert' : ''}">
+      <span class="kpi-label">Campaigns over plan</span>
+      <strong class="kpi-value">${over.length}</strong>
+      <span class="kpi-sub">of ${active.length} active in the period${over.length ? `: ${esc(over.slice(0, 2).map(c => c.name).join(', '))}${over.length > 2 ? '…' : ''}` : ''}</span>
+    </div>`);
+
+  box.querySelector('[data-kpis]').innerHTML = tiles.join('');
+}
+
+// Campaigns of the focused unit (Shared ones count for both)
+function focusCampaigns(rows) {
+  return view.focus ? rows.filter(c => c.business_unit === view.focus || c.business_unit === 'shared') : rows;
 }
 
 // Figures, shared by the page and the export ---------------------------------------
@@ -281,12 +426,12 @@ function upcomingFigures(data) {
 function drawBudget(box, data) {
   const units = budgetFigures(data);
   const container = box.querySelector('[data-budget-bars]');
-  container.innerHTML = budgetBars(units, view.unit);
+  container.innerHTML = budgetBars(units, view.focus);
   container.querySelectorAll('[data-unit]').forEach(button => button.addEventListener('click', () => {
-    view.unit = view.unit === button.dataset.unit ? null : button.dataset.unit;
-    drawBudget(box, data);
-    drawCampaigns(box, data);
+    view.focus = view.focus === button.dataset.unit ? null : button.dataset.unit;
+    box.closest('.page')?.querySelector(`[data-focus="${view.focus || ''}"]`)?.click();
   }));
+  box.querySelector('[data-internal]').hidden = Boolean(view.focus);
   box.querySelector('[data-internal]').innerHTML =
     `<span class="swatch swatch-internal" aria-hidden="true"></span> <strong>Internal</strong> ${fmtHours(sum(data.entries, 'internal_hours'))}
      <span class="muted">· meetings, admin and training; counts towards capacity, not against either budget</span>`;
@@ -296,35 +441,27 @@ function drawTrend(box, data) {
   const container = box.querySelector('[data-trend-chart]');
   const months = trendFigures(data);
   if (view.trendAsTable) container.innerHTML = trendTable(months);
-  else trendChart(container, months);
+  else trendChart(container, months, { focus: view.focus });
 }
 
 function drawCampaigns(box, data) {
   const filter = box.querySelector('[data-unit-filter]');
-  filter.innerHTML = view.unit
-    ? `<span class="filter-chip">${esc(UNITS[view.unit])} only <button type="button" class="icon-btn" data-clear-unit aria-label="Show all units">×</button></span>`
-    : '';
-  filter.querySelector('[data-clear-unit]')?.addEventListener('click', () => {
-    view.unit = null;
-    drawBudget(box, data);
-    drawCampaigns(box, data);
-  });
+  filter.innerHTML = view.focus ? `<span class="filter-chip">${esc(UNITS[view.focus])} only</span>` : '';
 
-  let rows = campaignFigures(data);
-  if (view.unit) rows = rows.filter(c => c.business_unit === view.unit || c.business_unit === 'shared');
+  const rows = focusCampaigns(campaignFigures(data));
   const container = box.querySelector('[data-campaigns]');
   if (!rows.length) {
-    container.innerHTML = `<p class="muted">No campaigns ${view.unit ? `for ${esc(UNITS[view.unit])} ` : ''}in this period.</p>`;
+    container.innerHTML = `<p class="muted">No campaigns ${view.focus ? `for ${esc(UNITS[view.focus])} ` : ''}in this period.</p>`;
     return;
   }
-  const hoursThisPeriod = c => (view.unit === 'education' ? c.periodEdu : view.unit === 'planning_center' ? c.periodPc : c.period);
+  const hoursThisPeriod = c => (view.focus === 'education' ? c.periodEdu : view.focus === 'planning_center' ? c.periodPc : c.period);
   const name = c => (canEditWork() && !document.body.classList.contains('presenting')
     ? `<a class="row-link" href="#/campaigns/${esc(c.id)}">${esc(c.name)}</a>` : `<strong>${esc(c.name)}</strong>`);
   container.innerHTML = `
     <div class="table-wrap">
       <table class="table">
         <thead><tr><th>Campaign</th><th>Business unit</th><th>Dates</th><th class="num">Planned</th>
-          <th class="num">${view.unit ? `${esc(UNITS[view.unit])} hours` : 'Hours'} this period</th><th class="num">Total so far</th></tr></thead>
+          <th class="num">${view.focus ? `${esc(UNITS[view.focus])} hours` : 'Hours'} this period</th><th class="num">Total so far</th></tr></thead>
         <tbody>
           ${rows.map(c => `
             <tr>
@@ -339,7 +476,7 @@ function drawCampaigns(box, data) {
         </tbody>
       </table>
     </div>
-    ${view.unit ? '<p class="muted small table-note">Shared campaigns show only this unit\'s share of their hours this period.</p>' : ''}`;
+    ${view.focus ? '<p class="muted small table-note">Shared campaigns show only this unit\'s share of their hours this period.</p>' : ''}`;
 }
 
 function drawCapacity(box, data) {
@@ -352,12 +489,18 @@ function drawCapacity(box, data) {
   const pct = Number(data.settings.productive_pct ?? 80);
   const total = key => rows.reduce((t, r) => t + (key === 'available' ? r.available.hours : r[key]), 0);
   const teamUsed = total('productiveHours') ? `${Math.round(total('campaign') / total('productiveHours') * 100)}%` : '—';
+  // With a unit in focus, only that unit's hours are shown per person
+  const columns = view.focus === 'education' ? [['edu', 'Education']]
+    : view.focus === 'planning_center' ? [['pc', 'Planning Center']]
+      : [['edu', 'Education'], ['pc', 'Planning Center'], ['internal', 'Internal']];
+  const unitHead = columns.map(([, label]) => `<th class="num">${label}</th>`).join('');
+  const unitCells = (r, tag = 'td') => columns.map(([key]) => `<${tag} class="num">${fmtHours(r[key])}</${tag}>`).join('');
   container.innerHTML = `
     <div class="table-wrap">
       <table class="table capacity-table">
         <thead><tr><th>Person</th><th class="num">Working hours</th><th class="num">Productive (${pct}%)</th>
           <th class="num">Campaign hours</th><th class="meter-col">Used</th>
-          <th class="num">Education</th><th class="num">Planning Center</th><th class="num">Internal</th></tr></thead>
+          ${unitHead}</tr></thead>
         <tbody>
           ${rows.map(r => {
             const note = [
@@ -373,16 +516,14 @@ function drawCapacity(box, data) {
                 <td class="meter-col">${r.used == null ? '<span class="muted">—</span>' : `
                   <span class="mini-meter" aria-hidden="true"><span style="width:${Math.min(100, r.used)}%"></span></span>
                   <span class="nowrap">${r.used}%</span>`}</td>
-                <td class="num">${fmtHours(r.edu)}</td>
-                <td class="num">${fmtHours(r.pc)}</td>
-                <td class="num">${fmtHours(r.internal)}</td>
+                ${unitCells(r)}
               </tr>`;
           }).join('')}
         </tbody>
         <tfoot>
           <tr><th>Team</th><th class="num">${fmtHours(total('available'))}</th><th class="num">${fmtHours(total('productiveHours'))}</th>
             <th class="num">${fmtHours(total('campaign'))}</th><th class="meter-col">${teamUsed}</th>
-            <th class="num">${fmtHours(total('edu'))}</th><th class="num">${fmtHours(total('pc'))}</th><th class="num">${fmtHours(total('internal'))}</th></tr>
+            ${unitCells({ edu: total('edu'), pc: total('pc'), internal: total('internal') }, 'th')}</tr>
         </tfoot>
       </table>
     </div>
@@ -391,7 +532,7 @@ function drawCapacity(box, data) {
 }
 
 function drawUpcoming(box, data) {
-  const rows = upcomingFigures(data);
+  const rows = focusCampaigns(upcomingFigures(data));
   const container = box.querySelector('[data-upcoming-list]');
   if (!rows.length) {
     container.innerHTML = `<p class="muted">No campaigns start between ${esc(fmtDate(data.period.to))} and ${esc(fmtDate(data.upcomingTo))}.</p>`;

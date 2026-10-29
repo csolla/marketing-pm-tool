@@ -191,7 +191,8 @@ const SECTIONS = [
     title: 'Dashboards',
     html: `
       <p><a href="#/dashboards">Dashboards</a> show how Marketing's hours compare with each business unit's budget for a month or quarter.</p>
-      <p><strong>Choose the period first</strong> with ‹ › or the month box, and switch between <strong>Month</strong> and <strong>This quarter</strong>. Every figure follows that choice.</p>
+      <p><strong>Choose the period first</strong> with ‹ › or the month box, and switch between <strong>Month</strong> and <strong>This quarter</strong>. Every figure follows that choice. <strong>Both units / Education / Planning Center</strong> narrows the whole page to one unit (clicking a unit's budget bar does the same).</p>
+      <p>The <strong>headline figures</strong> at the top answer the main questions at a glance: each unit's budget used, the team's productive time used and campaigns over plan, with the change since the previous month or quarter. The menu under the controls jumps to each section.</p>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Section</th><th>What it shows</th></tr></thead>
         <tbody>
@@ -212,7 +213,7 @@ const SECTIONS = [
       <h3>Sharing the figures</h3>
       <ul>
         <li><strong>Download Excel</strong>: one sheet per section, each starting with its period. <strong>CSV</strong>: the same in one file.</li>
-        <li><strong>Present</strong>: a clean full-screen view for meetings. Click <strong>Exit present view</strong> when done.</li>
+        <li><strong>Present</strong>: one section per screen for meetings. Step through with <strong>Next / Previous</strong> or the arrow keys; click <strong>Exit present view</strong> when done.</li>
       </ul>`,
   },
   {
