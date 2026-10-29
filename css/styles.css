@@ -60,8 +60,10 @@
   color-scheme: light;
 }
 
+/* Dark mode: follows the computer unless the person picked Light or Dark
+   (Appearance in the photo menu sets data-theme on <html>) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #020617;
     --surface: #0f172a;
     --surface-2: #172033;
@@ -99,6 +101,45 @@
     --meter-track: #1e293b;
     color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #020617;
+  --surface: #0f172a;
+  --surface-2: #172033;
+  --border: #1e293b;
+  --text: #f8fafc;
+  --text-body: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #22d3ee;      /* bright cyan with dark text: 11:1 */
+  --accent-hover: #67e8f9;
+  --accent-text: #020617;
+  --accent-bright: #22d3ee;
+  --accent-soft: #031f33;
+  --signal-soft: #2f2b21;
+  --signal-ink: #fcd34d;
+  --danger: #f87171;
+  --danger-bg: #2a1215;
+  --danger-text: #1f0707;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay-light: rgba(0, 0, 0, 0.4);
+  --success: #4ade80;
+  --success-bg: #0f2a1c;
+  --focus: rgba(34, 211, 238, 0.45);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --edu: #93b4ff;
+  --edu-bg: #172554;
+  --pc: #6ee7b7;
+  --pc-bg: #052e23;
+  --shared: #c4b5fd;
+  --shared-bg: #2e1065;
+  --series-edu: #3987e5;
+  --series-pc: #199e70;
+  --series-internal: #64748b;
+  --chart-grid: #1e293b;
+  --meter-track: #1e293b;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -1038,6 +1079,10 @@ button.cal-off:hover { box-shadow: inset 0 0 0 2px var(--text); }
 .cal-nonwork, .cal-key.cal-nonwork { background: var(--border); }
 .cal-cell.is-today { outline: 2px solid var(--accent-bright); outline-offset: 1px; }
 
+
+.menu-appearance { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.menu-appearance > span { color: var(--muted); font-size: 13px; }
+.menu-appearance .view-switch button { padding: 3px 9px; font-size: 13px; }
 
 /* Phones ------------------------------------------------------------------- */
 

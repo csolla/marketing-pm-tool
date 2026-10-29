@@ -146,6 +146,14 @@ function renderShell() {
             <strong>${esc(state.me.name)}</strong>
             <span>${esc(ROLES[role])}</span>
           </div>
+          <div class="menu-appearance">
+            <span>Appearance</span>
+            <div class="view-switch" role="group" aria-label="Appearance">
+              <button type="button" data-theme-choice="light">Light</button>
+              <button type="button" data-theme-choice="dark">Dark</button>
+              <button type="button" data-theme-choice="auto" title="Follow my computer's setting">Auto</button>
+            </div>
+          </div>
           <a class="menu-item" href="#/profile">Profile</a>
           <a class="menu-item" href="#/help">Help</a>
           ${role === 'admin' ? '<a class="menu-item" href="#/design-system">Design system</a>' : ''}
@@ -163,6 +171,24 @@ function renderShell() {
     if (!menu.contains(event.target)) setOpen(false);
   });
   menu.querySelector('[data-sign-out]').addEventListener('click', () => supabase.auth.signOut());
+
+  // Light, Dark, or Auto (follow the computer); remembered on this browser
+  const showTheme = () => {
+    const current = document.documentElement.dataset.theme || 'auto';
+    menu.querySelectorAll('[data-theme-choice]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.themeChoice === current)));
+  };
+  menu.querySelectorAll('[data-theme-choice]').forEach(button => button.addEventListener('click', () => {
+    const choice = button.dataset.themeChoice;
+    if (choice === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = choice;
+    try {
+      if (choice === 'auto') localStorage.removeItem('mpm-theme');
+      else localStorage.setItem('mpm-theme', choice);
+    } catch { /* not saved; fine */ }
+    showTheme();
+  }));
+  showTheme();
 }
 
 // The Profile page fires this after a name or photo change

@@ -31,6 +31,7 @@ const SECTIONS = [
         <li>The first time, click your initials (top right) → <strong>Profile</strong>. Check your name and upload a photo (up to 2 MB).</li>
       </ol>
       <p>You stay signed in on that browser for weeks. To sign out, click your initials → <strong>Sign out</strong>.</p>
+      <p>To switch between light and dark, click your initials → <strong>Appearance</strong>: <strong>Light</strong>, <strong>Dark</strong> or <strong>Auto</strong> (follows your computer or phone). Your choice is remembered on that browser.</p>
       <ul>
         <li><strong>Only DSD emails work.</strong> Any other address is refused.</li>
         <li><strong>"Too many sign-in emails":</strong> only a few can be sent per hour. Try again later, or use the last link you received.</li>
