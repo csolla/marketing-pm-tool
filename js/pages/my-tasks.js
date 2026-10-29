@@ -118,7 +118,6 @@ function drawSummary(page, open) {
 function row(item) {
   const done = item.status === 'done';
   const late = isOverdue(item.due, item.status);
-  const showStatus = item.status === 'in_progress' || item.status === 'in_review';
   return `
     <li class="my-task ${done ? 'is-done' : ''}" data-id="${esc(item.id)}" tabindex="0">
       <label class="tick" title="${done ? 'Mark as not done' : 'Mark as done'}">
@@ -132,7 +131,7 @@ function row(item) {
         <span class="campaign-name">${esc(item.campaign?.name || '')}</span>
         ${item.campaign ? `<span class="unit-line"><span class="unit-dot unit-dot-${esc(item.campaign.business_unit)}" aria-hidden="true"></span>${esc(BUSINESS_UNITS[item.campaign.business_unit])}</span>` : ''}
       </div>
-      <span class="my-task-status">${showStatus ? `<span class="status status-task-${item.status}">${esc(TASK_STATUSES[item.status])}</span>` : ''}</span>
+      <span class="my-task-status"><span class="status status-task-${item.status}">${esc(TASK_STATUSES[item.status])}</span></span>
       <span class="due ${late ? 'overdue' : ''}" ${item.due ? `title="Due ${esc(fmtDate(item.due))}"` : ''}>${esc(friendlyDue(item.due, item.status))}</span>
       ${done ? '<span></span>' : `<button class="icon-btn row-timer" type="button" data-timer title="Start timer" aria-label="Start timer on ${esc(item.title)}">▶</button>`}
     </li>`;

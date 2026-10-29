@@ -519,7 +519,9 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .tick input { width: 20px; height: 20px; cursor: pointer; }
 .row-timer { font-size: 13px !important; color: var(--muted); padding: 6px; opacity: 0.6; }
 .my-task:hover .row-timer, .row-timer:focus-visible { opacity: 1; color: var(--accent); }
+.status-task-todo { background: var(--surface-2); color: var(--muted); }
 .status-task-in_progress { background: var(--accent-soft); color: var(--accent); }
+.status-task-done { background: var(--success-bg); color: var(--success); }
 .status-task-in_review { background: var(--signal-soft); color: var(--signal-ink); }
 .my-tasks-header { align-items: center; }
 .task-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
