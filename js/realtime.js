@@ -6,6 +6,9 @@ const EVENTS = {
   tasks: 'tasks-changed',
   time_entries: 'time-changed',
   timers: 'timer-changed',
+  comments: 'comments-changed',
+  attachments: 'attachments-changed',
+  notifications: 'notifications-changed',
 };
 
 let channel = null;

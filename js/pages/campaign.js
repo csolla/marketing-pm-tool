@@ -40,7 +40,7 @@ export async function renderCampaign(el, id) {
   }
 
   const owner = personById(campaign.owner_id);
-  const page = { el, campaign, tasks: tasksResult.value, view: savedView(), dragging: false };
+  const page = { el, campaign, tasks: tasksResult.value, view: savedView(), dragging: false, counts: {} };
 
   el.innerHTML = `
     <a class="back-link" href="#/campaigns">← Campaigns</a>
@@ -94,6 +94,8 @@ export async function renderCampaign(el, id) {
 
   drawTasks(page);
   loadHours(page);
+  loadCounts(page);
+  onLiveChange(el, ['comments-changed', 'attachments-changed'], () => loadCounts(page), { isBusy: () => page.dragging });
   onLiveChange(el, 'time-changed', () => loadHours(page));
 
   onTasksChanged(el, async () => {
@@ -146,6 +148,28 @@ function drawTasks(page) {
   else drawBoard(page, container, main, subtasksOf);
 }
 
+// Comment and attachment counts for the cards
+async function loadCounts(page) {
+  const { data, error } = await supabase.from('task_activity_counts')
+    .select('task_id, comments, attachments').eq('campaign_id', page.campaign.id);
+  if (error) return;
+  page.counts = Object.fromEntries(data.map(row => [row.task_id, row]));
+  drawTasks(page);
+}
+
+const ICONS = {
+  comments: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  attachments: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 5 6 9.5a1.4 1.4 0 0 0 2 2L13 6.5a2.8 2.8 0 0 0-4-4L4 7.5a4.2 4.2 0 0 0 6 6l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+};
+
+function activityCounts(page, taskId) {
+  const counts = page.counts[taskId];
+  if (!counts) return '';
+  const item = (key, label) => (Number(counts[key])
+    ? `<span class="activity-count" title="${counts[key]} ${label}">${ICONS[key]}${counts[key]}</span>` : '');
+  return item('comments', 'comments') + item('attachments', 'attachments');
+}
+
 function subtaskCount(subtasks) {
   if (!subtasks.length) return '';
   const done = subtasks.filter(s => s.status === 'done').length;
@@ -177,6 +201,7 @@ function drawBoard(page, container, main, subtasksOf) {
                     <div class="task-card-meta">
                       ${dueLabel(task)}
                       ${subtaskCount(subtasksOf(task.id))}
+                      ${activityCounts(page, task.id)}
                       <span class="spacer"></span>
                       ${assignee ? `<span title="${esc(assignee.name)}">${avatar(assignee, 24)}</span>` : ''}
                     </div>
@@ -244,7 +269,7 @@ function drawList(page, container, main, subtasksOf) {
             return `
               <tr data-id="${esc(task.id)}" class="clickable ${task.status === 'done' ? 'is-done' : ''}">
                 <td class="tick-col"><input type="checkbox" data-done ${task.status === 'done' ? 'checked' : ''} aria-label="Done"></td>
-                <td><span class="task-title">${esc(task.title)}</span> ${subtaskCount(subtasksOf(task.id))}</td>
+                <td><span class="task-title">${esc(task.title)}</span> ${subtaskCount(subtasksOf(task.id))} ${activityCounts(page, task.id)}</td>
                 <td>${assignee ? `<span class="person">${avatar(assignee, 24)}${esc(assignee.name)}</span>` : '<span class="muted">—</span>'}</td>
                 <td class="nowrap">${dueLabel(task) || '<span class="muted">—</span>'}</td>
                 <td><select data-status aria-label="Status">${options(TASK_STATUSES, task.status)}</select></td>

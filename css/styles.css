@@ -671,6 +671,86 @@ body.presenting h1 { font-size: 30px; }
 body.presenting .dash-section h2 { font-size: 21px; }
 body.presenting .budget-figures strong { font-size: 26px; }
 
+/* Notifications bell ------------------------------------------------------------ */
+
+.bell-slot { flex-shrink: 0; }
+.bell { position: relative; }
+.bell-button {
+  position: relative; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.bell-button:hover { background: var(--surface-2); color: var(--text); }
+.bell-button svg { width: 20px; height: 20px; }
+.bell-badge {
+  position: absolute; top: 2px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+  background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 17px; text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.bell-panel {
+  position: absolute; right: -48px; top: calc(100% + 8px); width: min(380px, calc(100vw - 32px));
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 30;
+}
+.bell-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.bell-list { list-style: none; margin: 0; padding: 4px; max-height: 60vh; overflow-y: auto; }
+.bell-item {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px; border: 0; border-radius: 8px;
+  background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.bell-item:hover { background: var(--surface-2); }
+.bell-item.is-unread { font-weight: 550; }
+.bell-icon { width: 24px; text-align: center; flex-shrink: 0; }
+.bell-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.bell-text .muted { font-weight: 400; }
+.unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+.bell-empty { padding: 16px; text-align: center; }
+.toast-info { background: var(--accent); color: var(--accent-text); }
+
+/* Task panel: attachments and comments ------------------------------------------- */
+
+.attachments, .comments { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.attachments h3, .comments h3 { font-size: 15px; margin: 0 0 10px; }
+.attachment-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.attachment { display: flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid var(--border); border-radius: 8px; }
+.attachment .btn-small { margin-left: 0; }
+.attachment-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.attachment-main a, .attachment-name { font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.thumb { width: 48px; height: 48px; padding: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface-2); cursor: zoom-in; flex-shrink: 0; display: grid; place-items: center; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.file-icon { width: 48px; height: 48px; display: grid; place-items: center; background: var(--surface-2); border-radius: 6px; font-size: 20px; flex-shrink: 0; }
+.drop-zone {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; margin-bottom: 8px;
+  border: 1.5px dashed var(--border); border-radius: var(--radius); color: var(--muted); cursor: pointer; text-align: center;
+}
+.drop-zone:hover, .drop-zone.is-over { border-color: var(--accent); color: var(--text); background: var(--surface-2); }
+.image-preview { width: min(900px, calc(100vw - 32px)); }
+.image-preview img { display: block; max-width: 100%; max-height: 70vh; margin: 0 auto; border-radius: 6px; }
+
+.comment-list { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.comment { display: flex; gap: 10px; }
+.comment-main { flex: 1; min-width: 0; }
+.comment-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.comment-actions { margin-left: auto; display: inline-flex; }
+.comment-actions .btn-small { margin-left: 0; min-height: 24px; padding: 0 6px; }
+.comment-body { margin-top: 2px; overflow-wrap: anywhere; }
+.comment-body ul { margin: 4px 0; padding-left: 20px; }
+.mention { background: var(--edu-bg); color: var(--edu); border-radius: 4px; padding: 0 3px; font-weight: 600; }
+.comment-editor { position: relative; }
+.editor-tools { display: flex; gap: 4px; margin-bottom: 4px; }
+.tool { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 6px; padding: 2px 8px; font: inherit; font-size: 13px; cursor: pointer; }
+.tool:hover { background: var(--surface-2); }
+.comment-editor textarea { width: 100%; }
+.mention-picker {
+  position: absolute; left: 8px; bottom: calc(100% - 28px); z-index: 10; list-style: none; margin: 0; padding: 4px; min-width: 200px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg);
+}
+.mention-picker li { padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.mention-picker li.active, .mention-picker li:hover { background: var(--surface-2); }
+.comment-form-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+.comment-form-actions .btn-small { margin-left: 0; }
+
+.activity-count { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; color: var(--muted); }
+.activity-count svg { width: 14px; height: 14px; }
+
 /* Phones ------------------------------------------------------------------- */
 
 @media (max-width: 720px) {
@@ -698,6 +778,7 @@ body.presenting .budget-figures strong { font-size: 26px; }
   .dash-header .actions { flex-wrap: wrap; }
   .timer-bar { max-width: 46vw; padding-left: 10px; }
   .timer-label { display: none; }
+  .bell-panel { position: fixed; left: 16px; right: 16px; top: 60px; width: auto; }
   .time-controls { gap: 10px; }
   .week-nav strong { width: 100%; margin: 4px 0 0; }
   .week-nav { flex-wrap: wrap; }

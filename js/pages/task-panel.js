@@ -6,6 +6,7 @@ import { loadTasksHours } from '../time.js';
 import { startTimer } from '../timer.js';
 import { esc, options, buTag, fmtHours, toast, errorMessage, confirmDialog, TASK_STATUSES } from '../ui.js';
 import { openTimeEntryForm } from './time-entry-form.js';
+import { mountAttachments, mountComments } from './task-discussion.js';
 
 // The task side panel. One at a time, opened from the campaign board/list
 // and from My tasks. Every field saves when you leave it.
@@ -124,6 +125,8 @@ function render() {
           <input placeholder="Add a subtask and press Enter" aria-label="New subtask" maxlength="300">
         </form>
       </section>
+      <section class="attachments" data-attachments></section>
+      <section class="comments" data-comments></section>
     </div>`;
 
   fillFields();
@@ -146,6 +149,8 @@ function render() {
     if (event.target.closest('[data-remove]')) removeSubtask(id);
     if (event.target.closest('[data-sub-timer]')) startTimer({ campaign_id: task.campaign_id, task_id: id });
   });
+  mountAttachments(panel.querySelector('[data-attachments]'), task);
+  mountComments(panel.querySelector('[data-comments]'), task);
   panel.querySelector('[data-close]').focus();
 }
 

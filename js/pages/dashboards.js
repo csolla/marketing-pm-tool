@@ -8,6 +8,12 @@ import {
 import { budgetBars, budgetStatus, trendChart, trendTable } from '../charts.js';
 import { esc, buTag, avatar, fmtDate, fmtHours, toast, errorMessage, BUSINESS_UNITS } from '../ui.js';
 
+// Open Dashboards on a given month (used by budget alerts)
+export function showDashboardMonth(month) {
+  view.month = month;
+  view.mode = 'month';
+}
+
 // Kept between visits, so Present shows the same period
 const view = { month: currentMonth(), mode: 'month', trendMonths: 6, upcomingMonths: 3, unit: null, trendAsTable: false };
 

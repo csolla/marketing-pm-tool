@@ -3,6 +3,7 @@ import { state, loadMe, loadPeople, isDirector } from './state.js';
 import { esc, avatar, ROLES, errorMessage } from './ui.js';
 import { startRealtime, stopRealtime } from './realtime.js';
 import { loadTimer, mountTimerBar, clearTimer } from './timer.js';
+import { mountBell, clearBell } from './notifications.js';
 import { renderLogin } from './pages/login.js';
 import { renderMyTasks } from './pages/my-tasks.js';
 import { renderMyTime } from './pages/my-time.js';
@@ -77,6 +78,7 @@ async function handleAuth(session) {
     state.people = [];
     stopRealtime();
     clearTimer();
+    clearBell();
     renderLogin(app, { error: linkError });
     return;
   }
@@ -97,6 +99,7 @@ async function handleAuth(session) {
 
   renderShell();
   startRealtime();
+  mountBell(app.querySelector('.bell-slot'));
   if (!isDirector()) {
     mountTimerBar(app.querySelector('.timer-slot'));
     loadTimer().catch(() => {});
@@ -124,6 +127,7 @@ function renderShell() {
           `<a class="nav-link" data-nav="${item.key}" href="${item.href}">${esc(item.label)}</a>`).join('')}
       </nav>
       <div class="timer-slot"></div>
+      <div class="bell-slot"></div>
       <div class="user-menu">
         <button class="user-button" type="button" aria-haspopup="true" aria-expanded="false" title="${esc(state.me.name)}">
           ${avatar(state.me, 32)}
