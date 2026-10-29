@@ -6,8 +6,10 @@ A project management tool for DSD's Marketing team: campaigns, tasks, time loggi
 - **Owner:** Carlota (csolla@digitalsmiledesign.com), who is not technical. Explain each step in plain language.
 - **SQL:** Carlota runs database changes by hand in the Supabase SQL editor. Save each one as a numbered file under `supabase/migrations/` and put it on her clipboard with `pbcopy`.
 
-## `_build_plan/`
+## Build history
 
-The `_build_plan/` folder contains the initial PRD and per-milestone prompts used to scaffold this codebase during its initial build-out phase. These files are **temporary** — they exist for documentation and guidance only. They are **not** functional: no code, configuration, or runtime logic in this codebase should import, reference, or depend on anything inside `_build_plan/`.
+All five build milestones are complete (October 2026). The original PRD, milestone prompts and milestone logs were moved out of this folder to `../archive/marketing-pm-tool-build-plan/`. They are a historical record, not current documentation: the code has moved past some of their decisions, and nothing in the code depends on them. The milestone logs are still the best summary of why things were built the way they were.
 
-Do not treat `_build_plan/` as long-living documentation for the codebase. The codebase will evolve past the assumptions and decisions captured here. Once the initial milestones are complete, this folder is expected to be deleted.
+- Database changes so far: `supabase/migrations/01` to `08`. The next one is `09`.
+- Capacity rules exist twice and must be kept in step: `js/capacity.js` (`availability`, `monthBudget`) and the SQL functions `person_working_hours` / `unit_month_budget`.
+- When embedding a subtask's parent task in a Supabase request, name it by column (`parent:parent_id(...)`), not by constraint name.
