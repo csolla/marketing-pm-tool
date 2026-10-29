@@ -5,7 +5,7 @@ import { updateTask, effectiveDue, dueGroup, isOverdue, todayIso, DUE_GROUPS } f
 import { weekMinutes, weekStart, addDays } from '../time.js';
 import { availability, loadHolidays, loadTimeOff } from '../capacity.js';
 import { startTimer } from '../timer.js';
-import { esc, buTag, fmtShortDate, fmtDate, fmtHours, toast, errorMessage, TASK_STATUSES } from '../ui.js';
+import { esc, fmtShortDate, fmtDate, fmtHours, toast, errorMessage, TASK_STATUSES, BUSINESS_UNITS } from '../ui.js';
 import { openTaskPanel } from './task-panel.js';
 
 const SHOW_DONE_KEY = 'my-tasks-show-completed';
@@ -125,12 +125,12 @@ function row(item) {
         <input type="checkbox" data-done ${done ? 'checked' : ''} aria-label="Done: ${esc(item.title)}">
       </label>
       <div class="my-task-main">
-        <span class="task-title">${esc(item.title)}</span>
-        ${item.parent ? `<span class="muted small">Subtask of ${esc(item.parent.title)}</span>` : ''}
+        <span class="task-title">${item.parent ? '<span class="subtask-mark" title="Subtask" aria-label="Subtask">↳</span>' : ''}${esc(item.title)}</span>
+        ${item.parent ? `<span class="parent-line">in ${esc(item.parent.title)}</span>` : ''}
       </div>
       <div class="my-task-campaign">
-        ${item.campaign ? buTag(item.campaign.business_unit) : ''}
         <span class="campaign-name">${esc(item.campaign?.name || '')}</span>
+        ${item.campaign ? `<span class="unit-line"><span class="unit-dot unit-dot-${esc(item.campaign.business_unit)}" aria-hidden="true"></span>${esc(BUSINESS_UNITS[item.campaign.business_unit])}</span>` : ''}
       </div>
       <span class="my-task-status">${showStatus ? `<span class="status status-task-${item.status}">${esc(TASK_STATUSES[item.status])}</span>` : ''}</span>
       <span class="due ${late ? 'overdue' : ''}" ${item.due ? `title="Due ${esc(fmtDate(item.due))}"` : ''}>${esc(friendlyDue(item.due, item.status))}</span>

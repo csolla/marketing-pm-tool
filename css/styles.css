@@ -503,8 +503,16 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .my-task-main { min-width: 0; display: flex; flex-direction: column; }
 .my-task .task-title { font-weight: 550; color: var(--text); overflow-wrap: anywhere; }
 .my-task.is-done .task-title { color: var(--muted); text-decoration: line-through; }
-.my-task-campaign { min-width: 0; display: flex; align-items: center; gap: 8px; }
-.campaign-name { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-task-campaign { min-width: 0; display: flex; flex-direction: column; }
+.campaign-name { color: var(--text); font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unit-line { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.unit-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.unit-dot-education { background: var(--edu); }
+.unit-dot-planning_center { background: var(--pc); }
+.unit-dot-shared { background: var(--shared); }
+.subtask-mark { color: var(--muted); font-weight: 400; margin-right: 6px; }
+.parent-line { color: var(--muted); font-size: 12px; margin-left: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.my-task .task-title { font-weight: 500; }
 .my-task .due { text-align: right; font-size: 13.5px; }
 .tick { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; }
 .tick:hover { background: var(--accent-soft); }
