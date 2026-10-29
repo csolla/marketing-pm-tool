@@ -12,12 +12,12 @@ const CALENDARS = { Madrid: 'Madrid', England: 'England' };
 // Kept between visits
 const view = { section: null, budgetYear: Number(currentMonth().slice(0, 4)), holidayCalendar: 'Madrid', holidayYear: Number(currentMonth().slice(0, 4)) };
 
-const SECTIONS = { rules: 'Team rules', budgets: 'Monthly budgets', holidays: 'Bank holidays', 'time-off': 'Time off' };
+const SECTIONS = { rules: 'Team rules', budgets: 'Monthly budgets', calendar: 'Holidays & time off' };
 
 // Settings > Capacity (Admin): team-wide rules, budgets, bank holidays and
 // everyone's time off. Each person's own capacity is set in Settings > People.
 export function renderCapacitySettings(el) {
-  view.section ||= 'rules';
+  if (!SECTIONS[view.section]) view.section = 'rules';
   el.innerHTML = `
     <div class="view-switch sub-tabs" role="group" aria-label="Capacity sections">
       ${Object.entries(SECTIONS).map(([key, label]) => `<button type="button" data-section="${key}">${label}</button>`).join('')}
@@ -62,33 +62,36 @@ export function renderCapacitySettings(el) {
       <div data-budgets></div>
     </section>
 
-    <section data-part="holidays" hidden>
-      <div class="section-head">
-        <h2>Bank holidays</h2>
-        <div class="view-switch" role="group" aria-label="Calendar" data-calendar-switch></div>
-        <div class="week-nav" data-holiday-nav></div>
-        <button class="btn btn-small" type="button" data-add-holiday>Add a day</button>
-      </div>
-      <div data-holidays></div>
-    </section>
-
-    <section data-part="time-off" hidden>
+    <section data-part="calendar" hidden>
       <section class="card team-calendar" data-calendar></section>
       <div class="section-head">
         <h2>Time off</h2>
         <button class="btn btn-small" type="button" data-add-time-off>Add time off</button>
       </div>
       <div data-time-off></div>
+      <div class="section-head section">
+        <h2>Bank holidays by year</h2>
+        <div class="view-switch" role="group" aria-label="Calendar" data-calendar-switch></div>
+        <div class="week-nav" data-holiday-nav></div>
+        <button class="btn btn-small" type="button" data-add-holiday>Add a day</button>
+      </div>
+      <p class="muted small section-intro">For entering a whole year at once (each autumn, once the dates are published).</p>
+      <div data-holidays></div>
     </section>`;
 
   const show = key => {
     view.section = key;
     el.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.section === key)));
     el.querySelectorAll('[data-part]').forEach(part => { part.hidden = part.dataset.part !== key; });
-    if (key === 'time-off') drawCalendar();
+    if (key === 'calendar') drawCalendar();
   };
-  const drawCalendar = () => renderTeamCalendar(el.querySelector('[data-calendar]'), {
-    onChanged: () => renderTimeOffList(el.querySelector('[data-time-off]')),
+  const drawCalendar = el.redrawCalendar = () => renderTeamCalendar(el.querySelector('[data-calendar]'), {
+    manageHolidays: true,
+    onChanged: () => {
+      renderTimeOffList(el.querySelector('[data-time-off]'));
+      drawHolidays(el);
+      drawBudgets(el);
+    },
   });
   el.querySelectorAll('[data-section]').forEach(b => b.addEventListener('click', () => show(b.dataset.section)));
   show(view.section);
@@ -377,8 +380,16 @@ async function drawHolidays(el) {
     if (!ok) return;
     const { error: deleteError } = await supabase.from('bank_holidays').delete().eq('id', day.id);
     if (deleteError) toast(errorMessage(deleteError), 'error');
-    else drawHolidays(el);
+    else holidaysChanged(el);
   }));
+}
+
+// A bank holiday changed in the year list: refresh the list, the calendar and
+// the budgets (holidays lower automatic budgets)
+function holidaysChanged(el) {
+  drawHolidays(el);
+  drawBudgets(el);
+  el.redrawCalendar?.();
 }
 
 function addHoliday(el) {
@@ -398,7 +409,7 @@ function addHoliday(el) {
       view.holidayCalendar = f.calendar;
       view.holidayYear = Number(f.date.slice(0, 4));
       toast('Bank holiday added');
-      drawHolidays(el);
+      holidaysChanged(el);
     },
   });
 }

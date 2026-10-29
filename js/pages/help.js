@@ -238,7 +238,7 @@ const SECTIONS = [
           <tr><td>Team rules: budget split (70 / 30)</td><td>How productive hours divide into each unit's monthly budget</td></tr>
           <tr><td>Team rules: Shared split (70 / 30)</td><td>How hours on Shared campaigns are divided; changes apply only to hours logged afterwards</td></tr>
           <tr><td>Monthly budgets</td><td>Automatic. Type a number to override a month; <strong>Back to automatic</strong> undoes it</td></tr>
-          <tr><td>Bank holidays</td><td>Madrid and England, loaded to the end of 2027; add new years once published</td></tr>
+          <tr><td>Holidays &amp; time off</td><td>The team calendar with a row per holiday calendar (Madrid, England): click a day to add, rename or delete a bank holiday. Bank holidays are loaded to the end of 2027; add each new year in <strong>Bank holidays by year</strong> once the dates are published.</td></tr>
         </tbody>
       </table></div>
       <h3>Weekly routine</h3>

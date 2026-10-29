@@ -1,8 +1,9 @@
+import { supabase } from '../supabase.js';
 import { state, isAdmin, canEditWork } from '../state.js';
 import { todayIso } from '../tasks.js';
 import { addDays } from '../time.js';
 import { shiftMonth, monthFirst, monthLast, monthName, currentMonth, loadHolidays, loadTimeOff, deleteTimeOff } from '../capacity.js';
-import { esc, avatar, fmtDate, toast, errorMessage, confirmDialog } from '../ui.js';
+import { esc, avatar, fmtDate, toast, errorMessage, confirmDialog, formDialog } from '../ui.js';
 import { openTimeOffForm } from './time-off.js';
 
 // Team calendar: one row per person, one column per day of the month, with
@@ -16,7 +17,9 @@ const isoWeekday = iso => { const [y, m, d] = iso.split('-').map(Number); return
 // You change your own time off; the Admin changes anyone's
 const canChange = personId => isAdmin() || (personId === state.me.id && canEditWork());
 
-export async function renderTeamCalendar(container, { onChanged } = {}) {
+// manageHolidays (Admin, in Settings): adds a row per holiday calendar where
+// bank holidays are added, renamed and deleted
+export async function renderTeamCalendar(container, { onChanged, manageHolidays = false } = {}) {
   const from = monthFirst(view.month);
   const to = monthLast(view.month);
   container.innerHTML = `
@@ -35,7 +38,7 @@ export async function renderTeamCalendar(container, { onChanged } = {}) {
     </div>
     <div data-cal><p class="muted">Loading calendar…</p></div>`;
 
-  const redraw = () => renderTeamCalendar(container, { onChanged });
+  const redraw = () => renderTeamCalendar(container, { onChanged, manageHolidays });
   container.querySelectorAll('[data-shift]').forEach(button => button.addEventListener('click', () => {
     const shift = Number(button.dataset.shift);
     view.month = shift ? shiftMonth(view.month, shift) : currentMonth();
@@ -86,6 +89,14 @@ export async function renderTeamCalendar(container, { onChanged } = {}) {
           return `<span class="cal-day ${wd > 5 ? 'is-weekend' : ''} ${day === today ? 'is-today' : ''}">
             <span>${'MTWTFSS'[wd - 1]}</span><strong>${Number(day.slice(8))}</strong></span>`;
         }).join('')}
+        ${manageHolidays && isAdmin() ? ['Madrid', 'England'].map(calendar => `
+          <span class="cal-person cal-calendar-row">Bank holidays · ${calendar}</span>
+          ${days.map(day => {
+            const holiday = holidays.find(h => h.calendar === calendar && h.date === day);
+            const label = holiday ? `${calendar}, ${fmtDate(day)}: ${holiday.name}` : `${calendar}, ${fmtDate(day)}: add a bank holiday`;
+            return `<button type="button" class="cal-cell ${holiday ? 'cal-holiday' : 'cal-free cal-calendar-free'} ${day === today ? 'is-today' : ''}"
+              title="${esc(label)}" aria-label="${esc(label)}" data-calendar="${calendar}" data-day="${day}" ${holiday ? `data-holiday="${esc(holiday.id)}"` : ''}></button>`;
+          }).join('')}`).join('') : ''}
         ${people.map(person => `
           <span class="cal-person">${avatar(person, 22)}<span>${esc(person.id === state.me.id ? `${person.name} (you)` : person.name)}</span></span>
           ${days.map(day => cell(person, day)).join('')}`).join('')}
@@ -94,7 +105,13 @@ export async function renderTeamCalendar(container, { onChanged } = {}) {
     <p class="muted small table-note">${canEditWork() ? 'Click a free day on your row to add time off, or a day off to remove it.' : ''}
       Bank holidays follow each person's calendar (Madrid or England).</p>`;
 
-  container.querySelectorAll('button.cal-cell').forEach(button => button.addEventListener('click', async () => {
+  container.querySelectorAll('button[data-calendar]').forEach(button => button.addEventListener('click', () =>
+    editHoliday(button.dataset.calendar, button.dataset.day, holidays.find(h => h.id === button.dataset.holiday), () => {
+      redraw();
+      onChanged?.();
+    })));
+
+  container.querySelectorAll('button.cal-cell[data-person]').forEach(button => button.addEventListener('click', async () => {
     const { person: personId, day, off } = button.dataset;
     if (!off) {
       openTimeOffForm({ personId, date: day, onSaved: () => { redraw(); onChanged?.(); } });
@@ -118,4 +135,49 @@ export async function renderTeamCalendar(container, { onChanged } = {}) {
       toast(errorMessage(error), 'error');
     }
   }));
+}
+
+// Add a bank holiday on a day, or rename / delete an existing one
+function editHoliday(calendar, day, holiday, done) {
+  const dialog = formDialog({
+    title: holiday ? `Bank holiday · ${calendar}` : `Add a bank holiday · ${calendar}`,
+    submitLabel: holiday ? 'Save' : 'Add',
+    body: `
+      <p class="muted">${esc(fmtDate(day))}</p>
+      <label class="field"><span>Name</span>
+        <input name="name" required maxlength="120" value="${esc(holiday?.name || '')}" placeholder="e.g. Christmas Day"></label>`,
+    onSubmit: async form => {
+      const name = form.elements.name.value.trim();
+      if (!name) return 'Give the day a name.';
+      const { error } = holiday
+        ? await supabase.from('bank_holidays').update({ name }).eq('id', holiday.id)
+        : await supabase.from('bank_holidays').insert({ calendar, date: day, name });
+      if (error) return errorMessage(error);
+      toast(holiday ? 'Bank holiday renamed' : 'Bank holiday added');
+      done();
+    },
+  });
+  if (!holiday) return;
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'btn btn-ghost btn-discard';
+  remove.textContent = 'Delete this bank holiday';
+  remove.addEventListener('click', async () => {
+    const ok = await confirmDialog({
+      title: 'Delete bank holiday?',
+      message: `${fmtDate(day)} (${holiday.name}) will no longer count as a ${calendar} bank holiday.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from('bank_holidays').delete().eq('id', holiday.id);
+    if (error) {
+      toast(errorMessage(error), 'error');
+      return;
+    }
+    toast('Bank holiday deleted');
+    dialog.close();
+    done();
+  });
+  dialog.querySelector('.dialog-footer').prepend(remove);
 }
