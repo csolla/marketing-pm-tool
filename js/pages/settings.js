@@ -1,8 +1,9 @@
 import { renderPeople } from './people.js';
 import { renderCapacitySettings } from './capacity-settings.js';
+import { renderDesignSystem } from './design-system.js';
 
-// Settings (Admin): People and Capacity tabs
-const TABS = { people: 'People', capacity: 'Capacity' };
+// Settings (Admin): People, Capacity and Design system tabs
+const TABS = { people: 'People', capacity: 'Capacity', 'design-system': 'Design system' };
 
 export function renderSettings(el, tab = 'people') {
   el.innerHTML = `
@@ -14,5 +15,6 @@ export function renderSettings(el, tab = 'people') {
     <div data-tab></div>`;
   const body = el.querySelector('[data-tab]');
   if (tab === 'capacity') renderCapacitySettings(body);
+  else if (tab === 'design-system') renderDesignSystem(body);
   else renderPeople(body);
 }

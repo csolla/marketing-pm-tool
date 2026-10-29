@@ -25,7 +25,7 @@ const ROUTES = [
   { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: renderMyTime },
   { path: /^\/dashboards$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el) },
   { path: /^\/dashboards\/present$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el, { present: true }) },
-  { path: /^\/settings\/(people|capacity)$/, roles: ['admin'], nav: 'settings', render: (el, tab) => renderSettings(el, tab) },
+  { path: /^\/settings\/(people|capacity|design-system)$/, roles: ['admin'], nav: 'settings', render: (el, tab) => renderSettings(el, tab) },
   // Old address for the People page
   { path: /^\/people$/, roles: ['admin'], redirect: '/settings/people' },
   { path: /^\/profile$/, roles: ALL, nav: null, render: renderProfile },

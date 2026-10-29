@@ -1,75 +1,90 @@
 /* Marketing PM Tool */
 
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f1f3f6;
-  --border: #e2e5ea;
-  --text: #1c2230;
-  --muted: #667085;
-  --accent: #2f5bd3;
-  --accent-hover: #2549ad;
+  /* Design system: adapted from the BM design system (slate neutrals, cyan
+     accent, amber signal; Inter for headings, DM Sans for text). Use these
+     tokens; never hard-code colours. Reference page: #/design-system */
+  --bg: #f8fafc;            /* app background (BM surface) */
+  --surface: #ffffff;       /* cards, panels, dialogs (BM page) */
+  --surface-2: #f1f5f9;     /* table heads, hover, quiet fills */
+  --border: #e2e8f0;        /* hairline */
+  --text: #0f172a;          /* headings and emphasis (ink-display) */
+  --text-body: #334155;     /* running text (ink-body) */
+  --muted: #64748b;         /* secondary text (ink-muted) */
+  --accent: #0e7490;        /* buttons and links (BM accent-darker: 5.4:1 on white) */
+  --accent-hover: #155e75;
   --accent-text: #ffffff;
-  --danger: #c8322b;
-  --danger-bg: #fdecea;
-  --success: #1f7a43;
-  --success-bg: #e6f4ec;
-  --focus: rgba(47, 91, 211, 0.35);
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
-  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.18);
+  --accent-bright: #0891b2; /* BM accent: focus rings, selected states, meters */
+  --accent-soft: #e1f2f6;   /* BM accent-faded: selected backgrounds */
+  --signal: #fcd34d;        /* BM signal: attention highlights */
+  --signal-soft: #fffaea;
+  --signal-ink: #b45309;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  --success: #15803d;
+  --success-bg: #ecfdf5;
+  --focus: rgba(8, 145, 178, 0.4);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.16);
 
   /* Business units */
-  --edu: #2563eb;
-  --edu-bg: #e3ecfd;
-  --pc: #15803d;
-  --pc-bg: #e0f3e7;
-  --shared: #7c3aed;
-  --shared-bg: #efe7fd;
+  --edu: #1d4ed8;
+  --edu-bg: #e0eaff;
+  --pc: #047857;
+  --pc-bg: #dcf5ea;
+  --shared: #6d28d9;
+  --shared-bg: #ede6ff;
 
   /* Charts (validated for colour-blind separation on each surface) */
   --series-edu: #2a78d6;
   --series-pc: #1baf7a;
-  --series-internal: #8f8e89;
+  --series-internal: #94a3b8;
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-critical: #d03b3b;
-  --chart-grid: #e8e8e5;
-  --meter-track: #e9ecf1;
+  --chart-grid: #e2e8f0;
+  --meter-track: #e2e8f0;
 
   --radius: 10px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12151b;
-    --surface: #1a1e26;
-    --surface-2: #232834;
-    --border: #2e3442;
-    --text: #e7eaf0;
-    --muted: #98a1b2;
-    --accent: #6d8ff0;
-    --accent-hover: #86a2f3;
-    --accent-text: #0e1220;
-    --danger: #f07167;
-    --danger-bg: #3a1f1d;
-    --success: #5cc98a;
-    --success-bg: #1b3326;
-    --focus: rgba(109, 143, 240, 0.45);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
-    --edu: #7aa5ff;
-    --edu-bg: #1d2b4a;
-    --pc: #63d08c;
-    --pc-bg: #183324;
-    --shared: #b493ff;
-    --shared-bg: #2c2147;
+    --bg: #020617;
+    --surface: #0f172a;
+    --surface-2: #172033;
+    --border: #1e293b;
+    --text: #f8fafc;
+    --text-body: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #22d3ee;      /* bright cyan with dark text: 11:1 */
+    --accent-hover: #67e8f9;
+    --accent-text: #020617;
+    --accent-bright: #22d3ee;
+    --accent-soft: #031f33;
+    --signal-soft: #2f2b21;
+    --signal-ink: #fcd34d;
+    --danger: #f87171;
+    --danger-bg: #2a1215;
+    --success: #4ade80;
+    --success-bg: #0f2a1c;
+    --focus: rgba(34, 211, 238, 0.45);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --edu: #93b4ff;
+    --edu-bg: #172554;
+    --pc: #6ee7b7;
+    --pc-bg: #052e23;
+    --shared: #c4b5fd;
+    --shared-bg: #2e1065;
     --series-edu: #3987e5;
     --series-pc: #199e70;
-    --series-internal: #77766f;
-    --chart-grid: #2e3238;
-    --meter-track: #2a2f3a;
+    --series-internal: #64748b;
+    --chart-grid: #1e293b;
+    --meter-track: #1e293b;
     color-scheme: dark;
   }
 }
@@ -79,14 +94,15 @@
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 var(--font);
+  color: var(--text-body);
+  font: 15px/1.55 var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2 { margin: 0; line-height: 1.25; }
-h1 { font-size: 24px; font-weight: 650; }
+h1, h2, h3 { margin: 0; line-height: 1.25; color: var(--text); font-family: var(--font-display); letter-spacing: -0.01em; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
 h2 { font-size: 17px; font-weight: 600; }
+strong { color: var(--text); font-weight: 600; }
 a { color: var(--accent); }
 p { margin: 0; }
 
@@ -200,7 +216,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
   border-bottom: 1px solid var(--border);
 }
 
-.brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; flex-shrink: 0; }
+.brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 700; flex-shrink: 0; font-family: var(--font-display); letter-spacing: -0.01em; }
 .brand-mark {
   display: grid;
   place-items: center;
@@ -617,7 +633,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 .budget-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .budget-unit { display: inline-flex; align-items: center; font-weight: 650; }
 .budget-figures { color: var(--muted); font-variant-numeric: tabular-nums; }
-.budget-figures strong { color: var(--text); font-size: 20px; }
+.budget-figures strong { color: var(--text); font-size: 20px; font-family: var(--font-display); }
 .meter { display: block; height: 10px; border-radius: 999px; background: var(--meter-track); overflow: hidden; }
 .meter-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; }
 .meter-good .meter-fill { background: var(--status-good); }
@@ -771,6 +787,27 @@ body.presenting .budget-figures strong { font-size: 26px; }
 .help-section li + li { margin-top: 4px; }
 .help-section .table-wrap { margin: 4px 0 12px; box-shadow: none; }
 .help-section code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* Design system reference page ------------------------------------------------ */
+
+.ds-section { margin-bottom: 16px; }
+.ds-section > h2 { margin-bottom: 4px; }
+.ds-section > .muted { margin-bottom: 14px; }
+.ds-preview { padding: 16px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--bg); }
+.ds-preview > * + * { margin-top: 12px; }
+.ds-preview h3 { font-size: 14px; margin-top: 16px; }
+.ds-preview h3:first-child { margin-top: 0; }
+.ds-uses { margin: 12px 0 0; padding-left: 20px; }
+.ds-uses li + li { margin-top: 4px; }
+.ds-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ds-row .btn-small { margin-left: 0; }
+.ds-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.ds-swatch { display: flex; gap: 10px; align-items: flex-start; }
+.ds-chip { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+.ds-swatch code { font-size: 12.5px; color: var(--text); }
+.ds-form { max-width: 480px; }
+.ds-card-sample { max-width: 280px; }
+.ds-gap { margin-top: 12px; }
 
 /* Phones ------------------------------------------------------------------- */
 
