@@ -412,11 +412,12 @@ function drawUpcoming(box, data) {
 function exportSheets(data) {
   const h = v => Math.round(Number(v || 0) * 100) / 100;
   const label = data.period.label;
-  return [
+  const lastMonth = data.period.months[data.period.months.length - 1];
+  const sheets = [
     {
       name: 'Budget',
+      period: label,
       rows: [
-        [`Budget overview, ${label}`],
         ['Business unit', 'Hours used', 'Budget', '% used', 'Status'],
         ...budgetFigures(data).map(u => [u.label, h(u.used), u.budget == null ? '' : h(u.budget),
           u.budget ? Math.round(u.used / u.budget * 100) : '', budgetStatus(u.used, u.budget).label]),
@@ -425,6 +426,7 @@ function exportSheets(data) {
     },
     {
       name: 'Trend',
+      period: `${monthName(data.trendFrom)} – ${monthName(lastMonth)} (selected: ${label})`,
       rows: [
         ['Month', 'Education hours', 'Education budget', 'Planning Center hours', 'Planning Center budget', 'Internal hours'],
         ...trendFigures(data).map(m => [m.fullLabel, h(m.edu), m.eduBudget ?? '', h(m.pc), m.pcBudget ?? '', h(m.internal)]),
@@ -432,6 +434,7 @@ function exportSheets(data) {
     },
     {
       name: 'Campaigns',
+      period: label,
       rows: [
         ['Campaign', 'Business unit', 'Start', 'End', 'Planned hours', 'Hours this period', 'Education share', 'Planning Center share', 'Total so far', 'Over plan'],
         ...campaignFigures(data).map(c => [c.name, BUSINESS_UNITS[c.business_unit], c.start_date || '', c.end_date || '',
@@ -440,6 +443,7 @@ function exportSheets(data) {
     },
     {
       name: 'Team capacity',
+      period: label,
       rows: [
         ['Person', 'Working days', 'Bank holidays', 'Days off', 'Working hours', `Productive hours (${data.settings.productive_pct ?? 80}%)`,
           'Campaign hours', '% of productive used', 'Education', 'Planning Center', 'Internal'],
@@ -449,12 +453,15 @@ function exportSheets(data) {
     },
     {
       name: 'Upcoming',
+      period: `Campaigns starting after ${fmtDate(data.period.to)}, up to ${fmtDate(data.upcomingTo)}`,
       rows: [
         ['Campaign', 'Business unit', 'Start', 'End', 'Planned hours'],
         ...upcomingFigures(data).map(c => [c.name, BUSINESS_UNITS[c.business_unit], c.start_date, c.end_date || '', h(c.planned_hours)]),
       ],
     },
   ];
+  // Every sheet starts by saying which period it covers
+  return sheets.map(sheet => ({ ...sheet, rows: [['Period', sheet.period], [], ...sheet.rows] }));
 }
 
 function download(blob, filename) {
