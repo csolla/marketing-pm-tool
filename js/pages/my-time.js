@@ -8,6 +8,7 @@ import { startTimer } from '../timer.js';
 import { esc, options, buTag, fmtHours, toast, errorMessage, confirmDialog } from '../ui.js';
 import { openTimeEntryForm, pickCampaignTask } from './time-entry-form.js';
 import { renderTeamTime } from './team-time.js';
+import { openTimeOffForm, renderTimeOffList } from './time-off.js';
 
 const WEEKEND_KEY = 'my-time-show-weekend';
 
@@ -76,6 +77,13 @@ export async function renderMyTime(el) {
       <h2>Entries this week</h2>
       <div data-entries></div>
     </section>
+    <section class="section">
+      <div class="section-head">
+        <h2 data-time-off-title>My time off</h2>
+        <span data-time-off-action></span>
+      </div>
+      <div data-time-off></div>
+    </section>
     ${isAdmin() ? '<section class="section team-time" data-team></section>' : ''}`;
 
   el.querySelectorAll('[data-week]').forEach(button => button.addEventListener('click', () => {
@@ -110,6 +118,10 @@ async function load(page) {
     if (loadId !== page.loadId) return;
     page.entries = entries;
     draw(page);
+    if (page.timeOffFor !== page.personId) {
+      page.timeOffFor = page.personId;
+      drawTimeOff(page);
+    }
     const team = page.el.querySelector('[data-team]');
     if (team) {
       renderTeamTime(team, {
@@ -157,6 +169,20 @@ function drawHeader(page) {
 function defaultDate(page) {
   const today = todayIso();
   return today >= page.start && today <= addDays(page.start, 6) ? today : page.start;
+}
+
+// Days off for the person shown: their own (or the Admin) can add and delete
+function drawTimeOff(page) {
+  const { el } = page;
+  const own = page.personId === state.me.id;
+  const person = state.people.find(p => p.id === page.personId);
+  el.querySelector('[data-time-off-title]').textContent = own ? 'My time off' : `Time off: ${person?.name || ''}`;
+  const list = el.querySelector('[data-time-off]');
+  const action = el.querySelector('[data-time-off-action]');
+  action.innerHTML = canEdit(page) ? '<button class="btn btn-small" type="button">Add time off</button>' : '';
+  action.querySelector('button')?.addEventListener('click', () =>
+    openTimeOffForm({ personId: page.personId, onSaved: () => renderTimeOffList(list, { personId: page.personId }) }));
+  renderTimeOffList(list, { personId: page.personId });
 }
 
 function draw(page) {

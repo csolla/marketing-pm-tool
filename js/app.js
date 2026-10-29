@@ -8,9 +8,9 @@ import { renderMyTasks } from './pages/my-tasks.js';
 import { renderMyTime } from './pages/my-time.js';
 import { renderCampaigns } from './pages/campaigns.js';
 import { renderCampaign } from './pages/campaign.js';
-import { renderPeople } from './pages/people.js';
+import { renderSettings } from './pages/settings.js';
 import { renderProfile } from './pages/profile.js';
-import { renderPlaceholder } from './pages/placeholder.js';
+import { renderDashboards } from './pages/dashboards.js';
 
 const ALL = ['admin', 'member', 'director'];
 const WORK = ['admin', 'member'];
@@ -21,8 +21,11 @@ const ROUTES = [
   { path: /^\/campaigns$/, roles: WORK, nav: 'campaigns', render: renderCampaigns },
   { path: /^\/campaigns\/([0-9a-f-]{36})$/, roles: WORK, nav: 'campaigns', render: (el, id) => renderCampaign(el, id) },
   { path: /^\/my-time$/, roles: WORK, nav: 'my-time', render: renderMyTime },
-  { path: /^\/dashboards$/, roles: ['admin', 'director'], nav: 'dashboards', render: el => renderPlaceholder(el, 'dashboards') },
-  { path: /^\/people$/, roles: ['admin'], nav: 'settings', render: renderPeople },
+  { path: /^\/dashboards$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el) },
+  { path: /^\/dashboards\/present$/, roles: ALL, nav: 'dashboards', render: el => renderDashboards(el, { present: true }) },
+  { path: /^\/settings\/(people|capacity)$/, roles: ['admin'], nav: 'settings', render: (el, tab) => renderSettings(el, tab) },
+  // Old address for the People page
+  { path: /^\/people$/, roles: ['admin'], redirect: '/settings/people' },
   { path: /^\/profile$/, roles: ALL, nav: null, render: renderProfile },
 ];
 
@@ -30,8 +33,8 @@ const NAV = [
   { key: 'my-tasks', label: 'My tasks', href: '#/my-tasks', roles: WORK },
   { key: 'campaigns', label: 'Campaigns', href: '#/campaigns', roles: WORK },
   { key: 'my-time', label: 'My time', href: '#/my-time', roles: WORK },
-  { key: 'dashboards', label: 'Dashboards', href: '#/dashboards', roles: ['admin', 'director'] },
-  { key: 'settings', label: 'Settings', href: '#/people', roles: ['admin'] },
+  { key: 'dashboards', label: 'Dashboards', href: '#/dashboards', roles: ALL },
+  { key: 'settings', label: 'Settings', href: '#/settings/people', roles: ['admin'] },
 ];
 
 // Directors land on Dashboards; everyone else on My tasks
@@ -93,8 +96,8 @@ async function handleAuth(session) {
   }
 
   renderShell();
+  startRealtime();
   if (!isDirector()) {
-    startRealtime();
     mountTimerBar(app.querySelector('.timer-slot'));
     loadTimer().catch(() => {});
   }
@@ -165,6 +168,12 @@ function route() {
     window.location.hash = homePath();
     return;
   }
+  if (match.r.redirect) {
+    window.location.hash = match.r.redirect;
+    return;
+  }
+  // Present view hides the top bar; any other page shows it again
+  document.body.classList.remove('presenting');
 
   app.querySelectorAll('.nav-link').forEach(link =>
     link.classList.toggle('active', link.dataset.nav === match.r.nav));
