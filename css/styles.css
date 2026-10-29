@@ -48,6 +48,12 @@
   --chart-grid: #e2e8f0;
   --meter-track: #e2e8f0;
 
+  /* Sign-in welcome panel: the same in light and dark mode */
+  --welcome-bg: linear-gradient(150deg, #0e7490 0%, #155e75 55%, #0f172a 100%);
+  --welcome-ink: #ffffff;
+  --welcome-soft: #bae6fd;
+  --welcome-line: rgba(255, 255, 255, 0.35);
+
   --radius: 10px;
   --font: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -199,15 +205,15 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 }
 .login-welcome {
   display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 56px clamp(32px, 6vw, 96px);
-  background: linear-gradient(150deg, #0e7490 0%, #155e75 55%, #0f172a 100%); color: #e0f2fe;
+  background: var(--welcome-bg); color: var(--welcome-soft);
 }
-.login-welcome h2 { color: #ffffff; font-size: clamp(24px, 2.6vw, 34px); line-height: 1.2; max-width: 560px; }
-.brand-inverse { color: #ffffff; }
-.brand-inverse .brand-mark { background: #ffffff; color: #0e7490; }
+.login-welcome h2 { color: var(--welcome-ink); font-size: clamp(24px, 2.6vw, 34px); line-height: 1.2; max-width: 560px; }
+.brand-inverse { color: var(--welcome-ink); }
+.brand-inverse .brand-mark { background: var(--welcome-ink); color: #0e7490; }
 .welcome-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; max-width: 520px; }
-.welcome-points li { display: flex; flex-direction: column; gap: 2px; padding-left: 16px; border-left: 2px solid rgba(255, 255, 255, 0.35); }
-.welcome-points strong { color: #ffffff; }
-.welcome-points span { color: #bae6fd; font-size: 14px; }
+.welcome-points li { display: flex; flex-direction: column; gap: 2px; padding-left: 16px; border-left: 2px solid var(--welcome-line); }
+.welcome-points strong { color: var(--welcome-ink); }
+.welcome-points span { color: var(--welcome-soft); font-size: 14px; }
 .login-card {
   display: flex; flex-direction: column; justify-content: center; padding: 48px 40px;
   background: var(--surface); border-left: 1px solid var(--border);
