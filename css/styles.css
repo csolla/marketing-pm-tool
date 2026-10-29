@@ -21,6 +21,9 @@
   --signal-ink: #b45309;
   --danger: #b91c1c;
   --danger-bg: #fef2f2;
+  --danger-text: #ffffff;   /* text on a red fill */
+  --overlay: rgba(15, 23, 42, 0.45);
+  --overlay-light: rgba(15, 23, 42, 0.22);
   --success: #15803d;
   --success-bg: #ecfdf5;
   --focus: rgba(8, 145, 178, 0.4);
@@ -69,6 +72,9 @@
     --signal-ink: #fcd34d;
     --danger: #f87171;
     --danger-bg: #2a1215;
+    --danger-text: #1f0707;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --overlay-light: rgba(0, 0, 0, 0.4);
     --success: #4ade80;
     --success-bg: #0f2a1c;
     --focus: rgba(34, 211, 238, 0.45);
@@ -142,7 +148,7 @@ p { margin: 0; }
 .btn:disabled { opacity: 0.6; cursor: default; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: var(--danger-text); }
 .btn-danger:hover { background: var(--danger); filter: brightness(0.92); }
 .btn-danger-outline { color: var(--danger); }
 .btn-danger-outline:hover { background: var(--danger-bg); }
@@ -379,7 +385,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
   color: var(--text);
   box-shadow: var(--shadow-lg);
 }
-.dialog::backdrop { background: rgba(10, 14, 22, 0.45); }
+.dialog::backdrop { background: var(--overlay); }
 .dialog-form { padding: 20px 22px; }
 .dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
@@ -388,7 +394,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 
 #toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; flex-direction: column; gap: 8px; width: max-content; max-width: calc(100vw - 32px); }
 .toast { padding: 10px 16px; border-radius: 8px; background: var(--text); color: var(--bg); box-shadow: var(--shadow-lg); font-weight: 550; }
-.toast-error { background: var(--danger); color: #fff; }
+.toast-error { background: var(--danger); color: var(--danger-text); }
 
 /* Tasks: toolbar, board, list ---------------------------------------------- */
 
@@ -436,7 +442,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
 
 /* Side panel ---------------------------------------------------------------- */
 
-.panel-backdrop { position: fixed; inset: 0; background: rgba(10, 14, 22, 0.25); z-index: 40; }
+.panel-backdrop { position: fixed; inset: 0; background: var(--overlay-light); z-index: 40; }
 .panel {
   position: fixed;
   top: 0;
@@ -644,7 +650,7 @@ input:focus, select:focus, textarea:focus { outline: 3px solid var(--focus); out
   display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; color: #fff; background: var(--muted);
 }
 .status-chip.status-good > span[aria-hidden] { background: var(--status-good); }
-.status-chip.status-warning > span[aria-hidden] { background: var(--status-warning); color: #1c2230; }
+.status-chip.status-warning > span[aria-hidden] { background: var(--status-warning); color: #0f172a; }
 .status-chip.status-critical > span[aria-hidden] { background: var(--status-critical); }
 .status-chip.status-none { color: var(--muted); }
 .table .status-chip { margin-left: 6px; }
@@ -699,7 +705,7 @@ body.presenting .budget-figures strong { font-size: 26px; }
 .bell-button svg { width: 20px; height: 20px; }
 .bell-badge {
   position: absolute; top: 2px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
-  background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 17px; text-align: center;
+  background: var(--danger); color: var(--danger-text); font-size: 11px; font-weight: 700; line-height: 17px; text-align: center;
   box-shadow: 0 0 0 2px var(--surface);
 }
 .bell-panel {
