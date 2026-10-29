@@ -1,15 +1,11 @@
-import { state } from '../state.js';
 import { esc } from '../ui.js';
 
-// Help: how to use the tool. Each section lists the roles that see it.
-const ALL = ['admin', 'member', 'director'];
-const WORK = ['admin', 'member'];
+// Help: how to use the tool. Everyone sees the same guide, whatever their role.
 
 const SECTIONS = [
   {
     id: 'purpose',
     title: 'Purpose and roles',
-    roles: ALL,
     html: `
       <p>The Marketing PM Tool is where the Marketing team plans its campaigns, manages tasks and logs its hours, so
         directors can see how Marketing's time is spent across Education and Planning Center. It replaces Asana and the
@@ -27,7 +23,6 @@ const SECTIONS = [
   {
     id: 'getting-started',
     title: 'Getting started',
-    roles: ALL,
     html: `
       <p>You sign in with your DSD email and a link sent to your inbox. There is no password.</p>
       <ol>
@@ -45,7 +40,6 @@ const SECTIONS = [
   {
     id: 'my-tasks',
     title: 'Your daily routine: My tasks',
-    roles: WORK,
     html: `
       <p>Start each day on <a href="#/my-tasks">My tasks</a>. It lists every task and subtask assigned to you, across all campaigns, grouped by due date.</p>
       <div class="table-wrap"><table class="table">
@@ -68,7 +62,6 @@ const SECTIONS = [
   {
     id: 'campaigns',
     title: 'Campaigns and tasks',
-    roles: WORK,
     html: `
       <p>Every piece of work belongs to a campaign, and every campaign to one business unit. The unit decides whose budget the hours count against.</p>
       <div class="table-wrap"><table class="table">
@@ -104,7 +97,6 @@ const SECTIONS = [
   {
     id: 'together',
     title: 'Working together on a task',
-    roles: WORK,
     html: `
       <p>Keep a task's conversation and files inside the task, at the bottom of its side panel.</p>
       <h3>Comments and @mentions</h3>
@@ -124,7 +116,6 @@ const SECTIONS = [
   {
     id: 'time',
     title: 'Logging your time',
-    roles: WORK,
     html: `
       <p>Log every working hour, including meetings and admin, so the dashboards show where Marketing's time really goes.</p>
       <div class="table-wrap"><table class="table">
@@ -159,7 +150,6 @@ const SECTIONS = [
   {
     id: 'time-off',
     title: 'Time off',
-    roles: WORK,
     html: `
       <p>Add holidays and absences as soon as they're agreed. Time off lowers the team's available hours and that month's budgets.</p>
       <ol>
@@ -176,7 +166,6 @@ const SECTIONS = [
   {
     id: 'notifications',
     title: 'Notifications',
-    roles: WORK,
     html: `
       <p>Notifications appear only inside the tool, under the <strong>bell</strong> in the top bar. A red number shows how many you haven't read.</p>
       <div class="table-wrap"><table class="table">
@@ -199,7 +188,6 @@ const SECTIONS = [
   {
     id: 'dashboards',
     title: 'Dashboards',
-    roles: ALL,
     html: `
       <p><a href="#/dashboards">Dashboards</a> show how Marketing's hours compare with each business unit's budget for a month or quarter.</p>
       <p><strong>Choose the period first</strong> with ‹ › or the month box, and switch between <strong>Month</strong> and <strong>This quarter</strong>. Every figure follows that choice.</p>
@@ -228,8 +216,7 @@ const SECTIONS = [
   },
   {
     id: 'admin',
-    title: 'Admin procedures',
-    roles: ['admin'],
+    title: 'Admin procedures (Carlota)',
     html: `
       <p>Keep people, capacity and budgets up to date in <a href="#/settings/people">Settings</a> (tabs <strong>People</strong> and <strong>Capacity</strong>).</p>
       <h3>When someone joins</h3>
@@ -267,7 +254,6 @@ const SECTIONS = [
   {
     id: 'faq',
     title: 'Rules, troubleshooting and FAQ',
-    roles: ALL,
     html: `
       <h3>The rules in short</h3>
       <ol>
@@ -298,7 +284,7 @@ const SECTIONS = [
 ];
 
 export function renderHelp(el) {
-  const sections = SECTIONS.filter(s => s.roles.includes(state.me.role));
+  const sections = SECTIONS;
   el.innerHTML = `
     <div class="page-header">
       <div>
